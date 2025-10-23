@@ -14,16 +14,284 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      comments: {
+        Row: {
+          author: string
+          content: string
+          created_at: string
+          id: string
+          post_id: string | null
+          problem_id: string | null
+          project_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          author: string
+          content: string
+          created_at?: string
+          id?: string
+          post_id?: string | null
+          problem_id?: string | null
+          project_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          author?: string
+          content?: string
+          created_at?: string
+          id?: string
+          post_id?: string | null
+          problem_id?: string | null
+          project_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "community_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comments_problem_id_fkey"
+            columns: ["problem_id"]
+            isOneToOne: false
+            referencedRelation: "problem_statements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_posts: {
+        Row: {
+          author: string
+          comments_count: number
+          content: string
+          created_at: string
+          id: string
+          likes_count: number
+          tags: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          author: string
+          comments_count?: number
+          content: string
+          created_at?: string
+          id?: string
+          likes_count?: number
+          tags?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          author?: string
+          comments_count?: number
+          content?: string
+          created_at?: string
+          id?: string
+          likes_count?: number
+          tags?: string[] | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      likes: {
+        Row: {
+          created_at: string
+          id: string
+          post_id: string | null
+          problem_id: string | null
+          project_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_id?: string | null
+          problem_id?: string | null
+          project_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_id?: string | null
+          problem_id?: string | null
+          project_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "likes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "community_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "likes_problem_id_fkey"
+            columns: ["problem_id"]
+            isOneToOne: false
+            referencedRelation: "problem_statements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "likes_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      problem_statements: {
+        Row: {
+          category: string | null
+          comments_count: number
+          created_at: string
+          description: string
+          id: string
+          posted_by: string
+          tags: string[] | null
+          title: string
+          updated_at: string
+          upvotes_count: number
+        }
+        Insert: {
+          category?: string | null
+          comments_count?: number
+          created_at?: string
+          description: string
+          id?: string
+          posted_by: string
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+          upvotes_count?: number
+        }
+        Update: {
+          category?: string | null
+          comments_count?: number
+          created_at?: string
+          description?: string
+          id?: string
+          posted_by?: string
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+          upvotes_count?: number
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string
+          full_name: string | null
+          id: string
+          updated_at: string
+          username: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          full_name?: string | null
+          id: string
+          updated_at?: string
+          username: string
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+          username?: string
+        }
+        Relationships: []
+      }
+      projects: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string
+          difficulty: string
+          id: string
+          likes_count: number
+          technologies: string[]
+          title: string
+          updated_at: string
+          views_count: number
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description: string
+          difficulty: string
+          id?: string
+          likes_count?: number
+          technologies?: string[]
+          title: string
+          updated_at?: string
+          views_count?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string
+          difficulty?: string
+          id?: string
+          likes_count?: number
+          technologies?: string[]
+          title?: string
+          updated_at?: string
+          views_count?: number
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "moderator" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +418,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "moderator", "user"],
+    },
   },
 } as const

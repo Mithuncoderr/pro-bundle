@@ -1,12 +1,22 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/Navbar";
 import ProjectCard from "@/components/ProjectCard";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Search, Filter } from "lucide-react";
 
+interface Project {
+  id: string;
+  title: string;
+  description: string;
+  technologies: string[];
+  difficulty: string;
+  likes_count: number;
+}
+
 const Browse = () => {
+  const [projects, setProjects] = useState<Project[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTech, setSelectedTech] = useState<string | null>(null);
   const [selectedDifficulty, setSelectedDifficulty] = useState<string | null>(null);
@@ -14,63 +24,28 @@ const Browse = () => {
   const technologies = ["React", "Python", "Node.js", "Java", "TypeScript", "MongoDB", "TensorFlow", "Vue", "Angular"];
   const difficulties = ["Beginner", "Intermediate", "Advanced"];
 
-  const projects = [
-    {
-      id: 1,
-      title: "AI Chatbot with NLP",
-      description: "Build an intelligent chatbot using natural language processing and machine learning",
-      technologies: ["Python", "TensorFlow", "React"],
-      difficulty: "Advanced",
-      likes: 245
-    },
-    {
-      id: 2,
-      title: "E-commerce Platform",
-      description: "Create a full-stack online shopping platform with payment integration",
-      technologies: ["React", "Node.js", "MongoDB"],
-      difficulty: "Intermediate",
-      likes: 189
-    },
-    {
-      id: 3,
-      title: "Weather Dashboard",
-      description: "Build a responsive weather app with real-time data and beautiful visualizations",
-      technologies: ["JavaScript", "API", "CSS"],
-      difficulty: "Beginner",
-      likes: 312
-    },
-    {
-      id: 4,
-      title: "Social Media Analytics Tool",
-      description: "Create a dashboard to track and analyze social media metrics across platforms",
-      technologies: ["Python", "React", "MongoDB"],
-      difficulty: "Intermediate",
-      likes: 156
-    },
-    {
-      id: 5,
-      title: "Task Management App",
-      description: "Build a collaborative task management system with real-time updates",
-      technologies: ["Vue", "Node.js", "PostgreSQL"],
-      difficulty: "Beginner",
-      likes: 278
-    },
-    {
-      id: 6,
-      title: "Image Recognition System",
-      description: "Develop an image classification system using deep learning",
-      technologies: ["Python", "TensorFlow", "Flask"],
-      difficulty: "Advanced",
-      likes: 201
-    }
-  ];
+  useEffect(() => {
+    fetchProjects();
+  }, []);
 
-  const filteredProjects = projects.filter(project => {
+  const fetchProjects = async () => {
+    const { data, error } = await supabase
+      .from("projects")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching projects:", error);
+    } else {
+      setProjects(data || []);
+    }
+  };
+
+  const filteredProjects = projects.filter((project) => {
     const matchesSearch = project.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         project.description.toLowerCase().includes(searchQuery.toLowerCase());
+      project.description.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesTech = !selectedTech || project.technologies.includes(selectedTech);
     const matchesDifficulty = !selectedDifficulty || project.difficulty === selectedDifficulty;
-    
     return matchesSearch && matchesTech && matchesDifficulty;
   });
 
@@ -83,7 +58,7 @@ const Browse = () => {
           <div className="mb-12">
             <h1 className="text-4xl font-bold mb-4">Browse Projects</h1>
             <p className="text-muted-foreground text-lg">
-              Explore {projects.length} tech project ideas to kickstart your learning journey
+              Explore tech project ideas to kickstart your learning journey
             </p>
           </div>
 
@@ -161,13 +136,21 @@ const Browse = () => {
           </div>
 
           {/* Projects Grid */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredProjects.map((project) => (
-              <ProjectCard key={project.id} {...project} />
-            ))}
-          </div>
-
-          {filteredProjects.length === 0 && (
+          {filteredProjects.length > 0 ? (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredProjects.map((project) => (
+                <ProjectCard
+                  key={project.id}
+                  id={project.id}
+                  title={project.title}
+                  description={project.description}
+                  technologies={project.technologies}
+                  difficulty={project.difficulty}
+                  likes={project.likes_count}
+                />
+              ))}
+            </div>
+          ) : (
             <div className="text-center py-20">
               <p className="text-muted-foreground text-lg">No projects found matching your criteria</p>
             </div>

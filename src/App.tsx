@@ -9,6 +9,7 @@ import ProjectDetail from "./pages/ProjectDetail";
 import Submit from "./pages/Submit";
 import Problems from "./pages/Problems";
 import Community from "./pages/Community";
+import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
           <Route path="/submit" element={<Submit />} />
           <Route path="/problems" element={<Problems />} />
           <Route path="/community" element={<Community />} />
+          <Route path="/auth" element={<Auth />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

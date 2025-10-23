@@ -1,53 +1,45 @@
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/Navbar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MessageSquare, ThumbsUp, Calendar } from "lucide-react";
-import { Link } from "react-router-dom";
+import { formatDistanceToNow } from "date-fns";
+
+interface ProblemStatement {
+  id: string;
+  title: string;
+  description: string;
+  tags: string[];
+  upvotes_count: number;
+  comments_count: number;
+  created_at: string;
+  profiles?: {
+    username: string;
+  };
+}
 
 const Problems = () => {
-  const problems = [
-    {
-      id: 1,
-      title: "Need a better way to organize study materials",
-      description: "As a student, I struggle to keep track of all my notes, PDFs, and resources across different subjects. Looking for a solution that can centralize everything with good search functionality.",
-      author: "Sarah Chen",
-      date: "2 days ago",
-      upvotes: 42,
-      comments: 8,
-      tags: ["Productivity", "Education"]
-    },
-    {
-      id: 2,
-      title: "Campus event coordination is chaotic",
-      description: "Our university needs a platform where student organizations can coordinate events, share calendars, and avoid scheduling conflicts. Current tools are too complex or expensive.",
-      author: "Mike Johnson",
-      date: "1 week ago",
-      upvotes: 35,
-      comments: 12,
-      tags: ["Events", "Social"]
-    },
-    {
-      id: 3,
-      title: "Finding study groups is difficult",
-      description: "There's no easy way to find or form study groups for specific courses. Would love a system that matches students based on courses, availability, and learning preferences.",
-      author: "Priya Patel",
-      date: "3 days ago",
-      upvotes: 58,
-      comments: 15,
-      tags: ["Education", "Collaboration"]
-    },
-    {
-      id: 4,
-      title: "Career fair preparation needs improvement",
-      description: "Students need a platform to research companies, track applications, and share interview experiences before career fairs. Something like a student-focused job tracker.",
-      author: "James Lee",
-      date: "5 days ago",
-      upvotes: 29,
-      comments: 6,
-      tags: ["Career", "Networking"]
+  const [problems, setProblems] = useState<ProblemStatement[]>([]);
+
+  useEffect(() => {
+    fetchProblems();
+  }, []);
+
+  const fetchProblems = async () => {
+    const { data, error } = await supabase
+      .from("problem_statements")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching problems:", error);
+    } else {
+      setProblems(data as any || []);
     }
-  ];
+  };
 
   return (
     <div className="min-h-screen">
@@ -85,37 +77,45 @@ const Problems = () => {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {problem.tags.map((tag, index) => (
-                      <Badge key={index} variant="outline">
-                        {tag}
-                      </Badge>
-                    ))}
-                  </div>
+                  {problem.tags && problem.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {problem.tags.map((tag, index) => (
+                        <Badge key={index} variant="outline">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
                   
                   <div className="flex items-center justify-between text-sm text-muted-foreground">
                     <div className="flex items-center gap-4">
-                      <span>by {problem.author}</span>
+                      <span>by {problem.profiles?.username || "Anonymous"}</span>
                       <div className="flex items-center gap-1">
                         <Calendar className="h-4 w-4" />
-                        {problem.date}
+                        {formatDistanceToNow(new Date(problem.created_at), { addSuffix: true })}
                       </div>
                     </div>
                     
                     <div className="flex items-center gap-4">
                       <button className="flex items-center gap-1 hover:text-primary transition-colors">
                         <ThumbsUp className="h-4 w-4" />
-                        {problem.upvotes}
+                        {problem.upvotes_count}
                       </button>
                       <button className="flex items-center gap-1 hover:text-primary transition-colors">
                         <MessageSquare className="h-4 w-4" />
-                        {problem.comments}
+                        {problem.comments_count}
                       </button>
                     </div>
                   </div>
                 </CardContent>
               </Card>
             ))}
+
+            {problems.length === 0 && (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">No problem statements yet. Be the first to post!</p>
+              </div>
+            )}
           </div>
         </div>
       </div>

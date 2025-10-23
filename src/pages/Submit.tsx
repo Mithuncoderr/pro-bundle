@@ -1,49 +1,127 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { X } from "lucide-react";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
+import { z } from "zod";
+
+const projectSchema = z.object({
+  title: z.string().min(5, "Title must be at least 5 characters").max(100),
+  description: z.string().min(20, "Description must be at least 20 characters").max(1000),
+  technologies: z.array(z.string()).min(1, "Add at least one technology"),
+  difficulty: z.enum(["Beginner", "Intermediate", "Advanced"]),
+});
 
 const Submit = () => {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const [user, setUser] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [techInput, setTechInput] = useState("");
   const [technologies, setTechnologies] = useState<string[]>([]);
-  const [difficulty, setDifficulty] = useState("Beginner");
+  const [difficulty, setDifficulty] = useState<"Beginner" | "Intermediate" | "Advanced">("Beginner");
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        navigate("/auth");
+      } else {
+        setUser(session.user);
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
+      if (!session) {
+        navigate("/auth");
+      } else {
+        setUser(session.user);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
 
   const handleAddTech = () => {
-    if (techInput.trim() && !technologies.includes(techInput.trim())) {
-      setTechnologies([...technologies, techInput.trim()]);
+    const tech = techInput.trim();
+    if (tech && !technologies.includes(tech)) {
+      setTechnologies([...technologies, tech]);
       setTechInput("");
     }
   };
 
   const handleRemoveTech = (tech: string) => {
-    setTechnologies(technologies.filter(t => t !== tech));
+    setTechnologies(technologies.filter((t) => t !== tech));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!title || !description || technologies.length === 0) {
-      toast.error("Please fill in all required fields");
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please log in to submit a project.",
+        variant: "destructive",
+      });
+      navigate("/auth");
       return;
     }
 
-    // Here you would typically send the data to your backend
-    toast.success("Project idea submitted successfully!");
-    
-    // Reset form
-    setTitle("");
-    setDescription("");
-    setTechnologies([]);
-    setDifficulty("Beginner");
+    setIsLoading(true);
+
+    try {
+      const validated = projectSchema.parse({
+        title,
+        description,
+        technologies,
+        difficulty,
+      });
+
+      const { error } = await supabase
+        .from("projects")
+        .insert({
+          title: validated.title,
+          description: validated.description,
+          technologies: validated.technologies,
+          difficulty: validated.difficulty,
+          created_by: user.id,
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success!",
+        description: "Your project idea has been submitted.",
+      });
+
+      setTitle("");
+      setDescription("");
+      setTechnologies([]);
+      setDifficulty("Beginner");
+      setTechInput("");
+      
+      navigate("/browse");
+    } catch (error: any) {
+      toast({
+        title: "Submission failed",
+        description: error.message || "Could not submit project. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  if (!user) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen">
@@ -68,32 +146,31 @@ const Submit = () => {
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="space-y-2">
-                  <Label htmlFor="title">Project Title *</Label>
+                  <label className="text-sm font-medium">Project Title *</label>
                   <Input
-                    id="title"
                     placeholder="e.g., AI Chatbot with NLP"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     className="bg-background"
+                    required
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="description">Description *</Label>
+                  <label className="text-sm font-medium">Description *</label>
                   <Textarea
-                    id="description"
                     placeholder="Describe your project idea in detail..."
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     className="min-h-[150px] bg-background"
+                    required
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="technologies">Technologies *</Label>
+                  <label className="text-sm font-medium">Technologies *</label>
                   <div className="flex gap-2">
                     <Input
-                      id="technologies"
                       placeholder="Add a technology (e.g., React)"
                       value={techInput}
                       onChange={(e) => setTechInput(e.target.value)}
@@ -118,9 +195,9 @@ const Submit = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Difficulty Level</Label>
+                  <label className="text-sm font-medium">Difficulty Level</label>
                   <div className="flex gap-2">
-                    {["Beginner", "Intermediate", "Advanced"].map((level) => (
+                    {(["Beginner", "Intermediate", "Advanced"] as const).map((level) => (
                       <Button
                         key={level}
                         type="button"
@@ -134,8 +211,8 @@ const Submit = () => {
                   </div>
                 </div>
 
-                <Button type="submit" className="w-full bg-primary hover:bg-primary/90">
-                  Submit Project Idea
+                <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={isLoading}>
+                  {isLoading ? "Submitting..." : "Submit Project Idea"}
                 </Button>
               </form>
             </CardContent>

@@ -5,7 +5,7 @@ import { ArrowRight, Star } from "lucide-react";
 import { Link } from "react-router-dom";
 
 interface ProjectCardProps {
-  id: number;
+  id: string | number;
   title: string;
   description: string;
   technologies: string[];

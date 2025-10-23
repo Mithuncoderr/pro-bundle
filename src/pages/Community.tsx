@@ -1,3 +1,6 @@
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/Navbar";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -5,53 +8,106 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Heart, MessageCircle, Share2, Send } from "lucide-react";
-import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
+import { formatDistanceToNow } from "date-fns";
+
+interface Post {
+  id: string;
+  content: string;
+  author: string;
+  tags: string[];
+  likes_count: number;
+  comments_count: number;
+  created_at: string;
+  profiles?: {
+    username: string;
+  };
+}
 
 const Community = () => {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const [user, setUser] = useState<any>(null);
+  const [posts, setPosts] = useState<Post[]>([]);
   const [newPost, setNewPost] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const posts = [
-    {
-      id: 1,
-      author: "Alex Rivera",
-      initials: "AR",
-      time: "2 hours ago",
-      content: "Just finished building my first full-stack app! Used React, Node.js, and MongoDB. The feeling is amazing! 🚀",
-      likes: 24,
-      comments: 5,
-      tags: ["React", "Node.js", "MongoDB"]
-    },
-    {
-      id: 2,
-      author: "Emma Watson",
-      initials: "EW",
-      time: "5 hours ago",
-      content: "Looking for team members for a hackathon project - building an AI-powered study buddy. Anyone interested in ML and education tech?",
-      likes: 18,
-      comments: 12,
-      tags: ["AI", "Hackathon", "Collaboration"]
-    },
-    {
-      id: 3,
-      author: "David Kim",
-      initials: "DK",
-      time: "1 day ago",
-      content: "Pro tip: When learning a new framework, build something you actually need. I built a personal expense tracker and learned React in the process. Way more engaging than tutorials!",
-      likes: 45,
-      comments: 8,
-      tags: ["Learning", "Tips"]
-    },
-    {
-      id: 4,
-      author: "Sophie Turner",
-      initials: "ST",
-      time: "2 days ago",
-      content: "Deployed my portfolio website today! Took forever to get the animations right but so worth it. Would love feedback from the community!",
-      likes: 32,
-      comments: 15,
-      tags: ["Portfolio", "Feedback"]
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    fetchPosts();
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const fetchPosts = async () => {
+    const { data, error } = await supabase
+      .from("community_posts")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching posts:", error);
+    } else {
+      setPosts(data as any || []);
     }
-  ];
+  };
+
+  const handleCreatePost = async () => {
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please log in to post.",
+        variant: "destructive",
+      });
+      navigate("/auth");
+      return;
+    }
+
+    if (!newPost.trim()) {
+      toast({
+        title: "Empty post",
+        description: "Please write something before posting.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const { error } = await supabase
+        .from("community_posts")
+        .insert({
+          content: newPost.trim(),
+          author: user.id,
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Posted!",
+        description: "Your post has been shared with the community.",
+      });
+
+      setNewPost("");
+      fetchPosts();
+    } catch (error: any) {
+      toast({
+        title: "Failed to post",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen">
@@ -72,7 +128,7 @@ const Community = () => {
               <div className="flex items-start gap-4">
                 <Avatar>
                   <AvatarFallback className="bg-primary text-primary-foreground">
-                    YO
+                    {user?.email?.charAt(0).toUpperCase() || "U"}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 space-y-4">
@@ -83,9 +139,13 @@ const Community = () => {
                     className="min-h-[100px] bg-background"
                   />
                   <div className="flex justify-end">
-                    <Button className="bg-primary hover:bg-primary/90">
+                    <Button 
+                      onClick={handleCreatePost} 
+                      disabled={isLoading || !newPost.trim()}
+                      className="bg-primary hover:bg-primary/90"
+                    >
                       <Send className="h-4 w-4 mr-2" />
-                      Post
+                      {isLoading ? "Posting..." : "Post"}
                     </Button>
                   </div>
                 </div>
@@ -101,22 +161,26 @@ const Community = () => {
                   <div className="flex items-start gap-4">
                     <Avatar>
                       <AvatarFallback className="bg-primary/20 text-primary">
-                        {post.initials}
+                        {post.profiles?.username?.charAt(0).toUpperCase() || "U"}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-1">
-                        <h3 className="font-semibold">{post.author}</h3>
-                        <span className="text-sm text-muted-foreground">{post.time}</span>
+                        <h3 className="font-semibold">{post.profiles?.username || "Anonymous"}</h3>
+                        <span className="text-sm text-muted-foreground">
+                          {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}
+                        </span>
                       </div>
                       <p className="text-muted-foreground mb-3">{post.content}</p>
-                      <div className="flex flex-wrap gap-2">
-                        {post.tags.map((tag, index) => (
-                          <Badge key={index} variant="outline" className="text-xs">
-                            {tag}
-                          </Badge>
-                        ))}
-                      </div>
+                      {post.tags && post.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {post.tags.map((tag, index) => (
+                            <Badge key={index} variant="outline" className="text-xs">
+                              {tag}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </CardHeader>
@@ -124,11 +188,11 @@ const Community = () => {
                   <div className="flex items-center gap-6 text-muted-foreground">
                     <button className="flex items-center gap-2 hover:text-primary transition-colors">
                       <Heart className="h-5 w-5" />
-                      <span>{post.likes}</span>
+                      <span>{post.likes_count}</span>
                     </button>
                     <button className="flex items-center gap-2 hover:text-primary transition-colors">
                       <MessageCircle className="h-5 w-5" />
-                      <span>{post.comments}</span>
+                      <span>{post.comments_count}</span>
                     </button>
                     <button className="flex items-center gap-2 hover:text-primary transition-colors">
                       <Share2 className="h-5 w-5" />
@@ -138,6 +202,12 @@ const Community = () => {
                 </CardContent>
               </Card>
             ))}
+
+            {posts.length === 0 && (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">No posts yet. Be the first to share!</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
