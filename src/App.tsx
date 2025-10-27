@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import Browse from "./pages/Browse";
 import ProjectDetail from "./pages/ProjectDetail";
 import Submit from "./pages/Submit";
+import SubmitProblem from "./pages/SubmitProblem";
 import Problems from "./pages/Problems";
 import GenerateProblem from "./pages/GenerateProblem";
 import Community from "./pages/Community";
@@ -26,6 +27,7 @@ const App = () => (
           <Route path="/browse" element={<Browse />} />
           <Route path="/project/:id" element={<ProjectDetail />} />
           <Route path="/submit" element={<Submit />} />
+          <Route path="/submit-problem" element={<SubmitProblem />} />
           <Route path="/problems" element={<Problems />} />
           <Route path="/generate-problem" element={<GenerateProblem />} />
           <Route path="/community" element={<Community />} />

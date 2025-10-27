@@ -54,7 +54,7 @@ const Problems = () => {
                 Real problems waiting for student developers to solve
               </p>
             </div>
-            <Link to="/submit">
+            <Link to="/submit-problem">
               <Button className="bg-primary hover:bg-primary/90">
                 Post a Problem
               </Button>
