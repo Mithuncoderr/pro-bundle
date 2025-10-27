@@ -8,6 +8,7 @@ import Browse from "./pages/Browse";
 import ProjectDetail from "./pages/ProjectDetail";
 import Submit from "./pages/Submit";
 import Problems from "./pages/Problems";
+import GenerateProblem from "./pages/GenerateProblem";
 import Community from "./pages/Community";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
@@ -26,6 +27,7 @@ const App = () => (
           <Route path="/project/:id" element={<ProjectDetail />} />
           <Route path="/submit" element={<Submit />} />
           <Route path="/problems" element={<Problems />} />
+          <Route path="/generate-problem" element={<GenerateProblem />} />
           <Route path="/community" element={<Community />} />
           <Route path="/auth" element={<Auth />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
