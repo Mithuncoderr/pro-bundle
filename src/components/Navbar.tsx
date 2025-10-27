@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Code2, Home, Lightbulb, Users, FileQuestion, LogOut, User } from "lucide-react";
+import { Code2, Home, Lightbulb, Users, FileQuestion, LogOut, User, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
 import { User as SupabaseUser } from "@supabase/supabase-js";
@@ -61,6 +61,10 @@ const Navbar = () => {
             <Link to="/problems" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
               <FileQuestion className="h-4 w-4" />
               Problems
+            </Link>
+            <Link to="/generate-problem" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+              <Sparkles className="h-4 w-4" />
+              AI Generator
             </Link>
             <Link to="/community" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
               <Users className="h-4 w-4" />
