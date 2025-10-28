@@ -13,7 +13,7 @@ export default function GenerateProblem() {
   const [domain, setDomain] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [generatedProblem, setGeneratedProblem] = useState<any>(null);
+  const [generatedProblems, setGeneratedProblems] = useState<any[]>([]);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -30,7 +30,7 @@ export default function GenerateProblem() {
     }
 
     setIsGenerating(true);
-    setGeneratedProblem(null);
+    setGeneratedProblems([]);
 
     try {
       const { data, error } = await supabase.functions.invoke('generate-problem', {
@@ -39,16 +39,16 @@ export default function GenerateProblem() {
 
       if (error) throw error;
 
-      setGeneratedProblem(data);
+      setGeneratedProblems(data.problems || []);
       toast({
-        title: "Problem Discovered!",
-        description: `AI analyzed ${data.sourcesAnalyzed || 0} real-world sources from social media and forums`,
+        title: "Problems Discovered!",
+        description: `Generated ${data.problems?.length || 0} diverse problem ideas`,
       });
     } catch (error: any) {
       console.error('Generation error:', error);
       toast({
         title: "Generation Failed",
-        description: error.message || "Failed to generate problem statement",
+        description: error.message || "Failed to generate problem statements",
         variant: "destructive",
       });
     } finally {
@@ -56,7 +56,7 @@ export default function GenerateProblem() {
     }
   };
 
-  const handleSave = async () => {
+  const handleSave = async (problem: any) => {
     const { data: { user } } = await supabase.auth.getUser();
     
     if (!user) {
@@ -75,10 +75,10 @@ export default function GenerateProblem() {
       const { error } = await supabase
         .from('problem_statements')
         .insert({
-          title: generatedProblem.title,
-          description: generatedProblem.description,
-          category: generatedProblem.category,
-          tags: generatedProblem.tags,
+          title: problem.title,
+          description: problem.description,
+          category: problem.category,
+          tags: problem.tags,
           posted_by: user.id
         });
 
@@ -88,8 +88,6 @@ export default function GenerateProblem() {
         title: "Problem Statement Saved!",
         description: "Successfully added to the problems database",
       });
-      
-      navigate('/problems');
     } catch (error: any) {
       console.error('Save error:', error);
       toast({
@@ -114,15 +112,15 @@ export default function GenerateProblem() {
               AI Problem Discovery Engine
             </h1>
             <p className="text-muted-foreground">
-              Discover real-world problems by analyzing social media, Reddit, forums, and online discussions
+              Generate multiple diverse problem statements for any domain using advanced AI
             </p>
           </div>
 
           <Card>
             <CardHeader>
-              <CardTitle>Discover Real-World Problems</CardTitle>
+              <CardTitle>Generate Problem Ideas</CardTitle>
               <CardDescription>
-                Our AI searches Reddit, X, forums, and social media to find actual pain points and complaints in your chosen domain
+                AI analyzes the domain and generates 3-5 diverse, actionable problem statements
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -151,12 +149,12 @@ export default function GenerateProblem() {
                   {isGenerating ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Searching the Internet...
+                      Generating Ideas...
                     </>
                   ) : (
                     <>
                       <Sparkles className="mr-2 h-4 w-4" />
-                      Discover Real Problems
+                      Generate Problem Ideas
                     </>
                   )}
                 </Button>
@@ -164,47 +162,52 @@ export default function GenerateProblem() {
             </CardContent>
           </Card>
 
-          {generatedProblem && (
-            <Card className="border-primary/20">
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="space-y-1 flex-1">
-                    <CardTitle>{generatedProblem.title}</CardTitle>
-                    <CardDescription className="flex items-center gap-2">
-                      <Badge variant="outline">{generatedProblem.category}</Badge>
-                    </CardDescription>
-                  </div>
-                  <Button onClick={handleSave} disabled={isSaving}>
-                    {isSaving ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Saving...
-                      </>
-                    ) : (
-                      <>
-                        <Save className="mr-2 h-4 w-4" />
-                        Save to Database
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="prose prose-sm max-w-none">
-                  <p className="text-foreground whitespace-pre-wrap">
-                    {generatedProblem.description}
-                  </p>
-                </div>
-                
-                <div className="flex flex-wrap gap-2">
-                  {generatedProblem.tags?.map((tag: string, index: number) => (
-                    <Badge key={index} variant="secondary">
-                      {tag}
-                    </Badge>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+          {generatedProblems.length > 0 && (
+            <div className="space-y-4">
+              <h2 className="text-2xl font-bold">Generated Problem Ideas ({generatedProblems.length})</h2>
+              {generatedProblems.map((problem, index) => (
+                <Card key={index} className="border-primary/20">
+                  <CardHeader>
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="space-y-1 flex-1">
+                        <CardTitle className="text-xl">{problem.title}</CardTitle>
+                        <CardDescription className="flex items-center gap-2">
+                          <Badge variant="outline">{problem.category}</Badge>
+                        </CardDescription>
+                      </div>
+                      <Button onClick={() => handleSave(problem)} disabled={isSaving} size="sm">
+                        {isSaving ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Saving...
+                          </>
+                        ) : (
+                          <>
+                            <Save className="mr-2 h-4 w-4" />
+                            Save
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="prose prose-sm max-w-none">
+                      <p className="text-foreground whitespace-pre-wrap">
+                        {problem.description}
+                      </p>
+                    </div>
+                    
+                    <div className="flex flex-wrap gap-2">
+                      {problem.tags?.map((tag: string, tagIndex: number) => (
+                        <Badge key={tagIndex} variant="secondary">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           )}
         </div>
       </main>

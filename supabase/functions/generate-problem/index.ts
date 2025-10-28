@@ -19,68 +19,40 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    console.log('Researching real-world problems for domain:', domain);
+    console.log('Generating diverse problem ideas for domain:', domain);
 
-    // Step 1: Search the web for real pain points
-    const searchQueries = [
-      `${domain} problems reddit`,
-      `${domain} complaints forum`,
-      `${domain} pain points twitter`,
-      `${domain} challenges issues`,
-      `problems with ${domain} industry`
-    ];
+    // Generate a random seed for variation
+    const randomSeed = Math.random().toString(36).substring(7);
+    const timestamp = new Date().toISOString();
 
-    console.log('Searching for real pain points...');
-    const searchPromises = searchQueries.map(query => 
-      fetch("https://ai.gateway.lovable.dev/v1/search", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ query, numResults: 3 })
-      }).then(res => res.json()).catch(err => {
-        console.error(`Search error for "${query}":`, err);
-        return { results: [] };
-      })
-    );
+    const systemPrompt = `You are an expert product strategist and problem identifier who specializes in discovering real-world pain points across various industries.
 
-    const searchResults = await Promise.all(searchPromises);
-    
-    // Combine all search results
-    let combinedContext = "";
-    let totalResults = 0;
-    
-    for (const result of searchResults) {
-      if (result.results && Array.isArray(result.results)) {
-        totalResults += result.results.length;
-        for (const item of result.results) {
-          if (item.content) {
-            combinedContext += `\n\n--- Source: ${item.url || 'Unknown'} ---\n${item.content}\n`;
-          }
-        }
-      }
-    }
+Your task is to generate 3-5 DIVERSE, ACTIONABLE problem statements that represent genuine challenges people face in the specified domain.
 
-    console.log(`Found ${totalResults} real-world sources`);
+Each problem should:
+- Be specific and well-defined
+- Represent a real pain point that exists today
+- Be different from the others (vary in scope, target audience, and approach)
+- Have clear potential for a solution
+- Be based on realistic market needs and user frustrations
 
-    // Step 2: Analyze the real data to generate problem statement
-    const systemPrompt = `You are an expert at analyzing real-world complaints, discussions, and pain points from social media, forums, Reddit, and online discussions. 
-Your task is to synthesize actual user complaints and challenges into a well-structured problem statement.
-Focus on recurring themes, common frustrations, and genuine needs expressed by real people.
-Generate a comprehensive, actionable problem statement based on ACTUAL data from the internet.`;
+Generate varied problems covering different aspects of the domain - from consumer pain points to industry challenges, from technological gaps to process inefficiencies.`;
 
-    const userPrompt = `Based on the following REAL discussions, complaints, and pain points found online about "${domain}", generate a detailed problem statement:
+    const userPrompt = `Generate 3-5 distinct, real-world problem statements for the "${domain}" sector.
 
-${combinedContext || `No specific online discussions found. Generate a problem statement based on common known challenges in the ${domain} sector.`}
+Domain context: ${domain}
+Variation seed: ${randomSeed}
+Timestamp: ${timestamp}
 
-Analyze these real-world sources and identify:
-1. The most frequently mentioned problems
-2. Common pain points and frustrations
-3. Unmet needs and gaps in current solutions
-4. Potential opportunities for innovation
+Consider different angles:
+- Consumer/end-user frustrations
+- Business operational challenges  
+- Technological gaps or limitations
+- Market inefficiencies
+- Accessibility or equity issues
+- Sustainability or scalability problems
 
-Generate a problem statement that reflects ACTUAL real-world issues discovered from these sources.`;
+Make each problem statement unique and actionable. Vary the scope, target audience, and specific focus area for each problem.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -98,36 +70,48 @@ Generate a problem statement that reflects ACTUAL real-world issues discovered f
           {
             type: "function",
             function: {
-              name: "generate_problem_statement",
-              description: "Generate a structured problem statement based on real-world data",
+              name: "generate_problem_statements",
+              description: "Generate multiple diverse problem statements",
               parameters: {
                 type: "object",
                 properties: {
-                  title: { 
-                    type: "string",
-                    description: "A concise, compelling title for the problem (max 100 characters)"
-                  },
-                  description: { 
-                    type: "string",
-                    description: "A detailed description based on real pain points discovered, including specific examples and impact (200-500 words)"
-                  },
-                  category: { 
-                    type: "string",
-                    description: "The main category or industry sector"
-                  },
-                  tags: { 
+                  problems: {
                     type: "array",
-                    items: { type: "string" },
-                    description: "3-5 relevant tags for categorization"
+                    description: "Array of 3-5 distinct problem statements",
+                    items: {
+                      type: "object",
+                      properties: {
+                        title: { 
+                          type: "string",
+                          description: "A concise, compelling title for the problem (max 100 characters)"
+                        },
+                        description: { 
+                          type: "string",
+                          description: "A detailed description of the problem, including specific examples and impact (200-400 words)"
+                        },
+                        category: { 
+                          type: "string",
+                          description: "The main category or industry sector"
+                        },
+                        tags: { 
+                          type: "array",
+                          items: { type: "string" },
+                          description: "3-5 relevant tags for categorization"
+                        }
+                      },
+                      required: ["title", "description", "category", "tags"]
+                    },
+                    minItems: 3,
+                    maxItems: 5
                   }
                 },
-                required: ["title", "description", "category", "tags"],
+                required: ["problems"],
                 additionalProperties: false
               }
             }
           }
         ],
-        tool_choice: { type: "function", function: { name: "generate_problem_statement" } }
+        tool_choice: { type: "function", function: { name: "generate_problem_statements" } }
       }),
     });
 
@@ -158,11 +142,10 @@ Generate a problem statement that reflects ACTUAL real-world issues discovered f
     }
 
     const problemData = JSON.parse(toolCall.function.arguments);
-    console.log('Generated problem statement from real-world data');
+    console.log(`Generated ${problemData.problems?.length || 0} diverse problem statements`);
 
     return new Response(JSON.stringify({
-      ...problemData,
-      sourcesAnalyzed: totalResults
+      problems: problemData.problems || []
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
