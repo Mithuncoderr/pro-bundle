@@ -19,16 +19,68 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    console.log('Generating problem statement for domain:', domain);
+    console.log('Researching real-world problems for domain:', domain);
 
-    const systemPrompt = `You are an expert at analyzing real-world problems across various industries and sectors. 
-Your task is to research and identify genuine, practical problems that exist in the specified domain.
-Consider current trends, pain points, inefficiencies, and challenges faced by businesses and individuals in that sector.
-Generate a comprehensive, actionable problem statement that could lead to innovative solutions.`;
+    // Step 1: Search the web for real pain points
+    const searchQueries = [
+      `${domain} problems reddit`,
+      `${domain} complaints forum`,
+      `${domain} pain points twitter`,
+      `${domain} challenges issues`,
+      `problems with ${domain} industry`
+    ];
 
-    const userPrompt = `Analyze the "${domain}" sector and generate a detailed problem statement based on real-world challenges and issues in this domain. 
-Consider current market trends, technological gaps, user pain points, and industry inefficiencies.
-The problem should be specific, measurable, and impactful.`;
+    console.log('Searching for real pain points...');
+    const searchPromises = searchQueries.map(query => 
+      fetch("https://ai.gateway.lovable.dev/v1/search", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ query, numResults: 3 })
+      }).then(res => res.json()).catch(err => {
+        console.error(`Search error for "${query}":`, err);
+        return { results: [] };
+      })
+    );
+
+    const searchResults = await Promise.all(searchPromises);
+    
+    // Combine all search results
+    let combinedContext = "";
+    let totalResults = 0;
+    
+    for (const result of searchResults) {
+      if (result.results && Array.isArray(result.results)) {
+        totalResults += result.results.length;
+        for (const item of result.results) {
+          if (item.content) {
+            combinedContext += `\n\n--- Source: ${item.url || 'Unknown'} ---\n${item.content}\n`;
+          }
+        }
+      }
+    }
+
+    console.log(`Found ${totalResults} real-world sources`);
+
+    // Step 2: Analyze the real data to generate problem statement
+    const systemPrompt = `You are an expert at analyzing real-world complaints, discussions, and pain points from social media, forums, Reddit, and online discussions. 
+Your task is to synthesize actual user complaints and challenges into a well-structured problem statement.
+Focus on recurring themes, common frustrations, and genuine needs expressed by real people.
+Generate a comprehensive, actionable problem statement based on ACTUAL data from the internet.`;
+
+    const userPrompt = `Based on the following REAL discussions, complaints, and pain points found online about "${domain}", generate a detailed problem statement:
+
+${combinedContext || `No specific online discussions found. Generate a problem statement based on common known challenges in the ${domain} sector.`}
+
+Analyze these real-world sources and identify:
+1. The most frequently mentioned problems
+2. Common pain points and frustrations
+3. Unmet needs and gaps in current solutions
+4. Potential opportunities for innovation
+
+Generate a problem statement that reflects ACTUAL real-world issues discovered from these sources.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -47,7 +99,7 @@ The problem should be specific, measurable, and impactful.`;
             type: "function",
             function: {
               name: "generate_problem_statement",
-              description: "Generate a structured problem statement with all required fields",
+              description: "Generate a structured problem statement based on real-world data",
               parameters: {
                 type: "object",
                 properties: {
@@ -57,7 +109,7 @@ The problem should be specific, measurable, and impactful.`;
                   },
                   description: { 
                     type: "string",
-                    description: "A detailed description of the problem, its impact, and context (200-500 words)"
+                    description: "A detailed description based on real pain points discovered, including specific examples and impact (200-500 words)"
                   },
                   category: { 
                     type: "string",
@@ -98,7 +150,7 @@ The problem should be specific, measurable, and impactful.`;
     }
 
     const data = await response.json();
-    console.log('AI Response:', JSON.stringify(data, null, 2));
+    console.log('AI Response received');
 
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
     if (!toolCall) {
@@ -106,9 +158,12 @@ The problem should be specific, measurable, and impactful.`;
     }
 
     const problemData = JSON.parse(toolCall.function.arguments);
-    console.log('Generated problem statement:', problemData);
+    console.log('Generated problem statement from real-world data');
 
-    return new Response(JSON.stringify(problemData), {
+    return new Response(JSON.stringify({
+      ...problemData,
+      sourcesAnalyzed: totalResults
+    }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error: any) {

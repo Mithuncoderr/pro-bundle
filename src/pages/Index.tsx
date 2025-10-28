@@ -1,37 +1,37 @@
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Code2, Lightbulb, Users, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import ProjectCard from "@/components/ProjectCard";
 import heroImage from "@/assets/hero-tech.jpg";
+import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
-  const featuredProjects = [
-    {
-      id: 1,
-      title: "AI Chatbot with NLP",
-      description: "Build an intelligent chatbot using natural language processing and machine learning",
-      technologies: ["Python", "TensorFlow", "React"],
-      difficulty: "Advanced",
-      likes: 245
-    },
-    {
-      id: 2,
-      title: "E-commerce Platform",
-      description: "Create a full-stack online shopping platform with payment integration",
-      technologies: ["React", "Node.js", "MongoDB"],
-      difficulty: "Intermediate",
-      likes: 189
-    },
-    {
-      id: 3,
-      title: "Weather Dashboard",
-      description: "Build a responsive weather app with real-time data and beautiful visualizations",
-      technologies: ["JavaScript", "API", "CSS"],
-      difficulty: "Beginner",
-      likes: 312
-    }
-  ];
+  const [featuredProjects, setFeaturedProjects] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchFeaturedProjects = async () => {
+      const { data, error } = await supabase
+        .from('projects')
+        .select('*')
+        .order('likes_count', { ascending: false })
+        .limit(3);
+
+      if (!error && data) {
+        setFeaturedProjects(data.map(project => ({
+          id: project.id,
+          title: project.title,
+          description: project.description,
+          technologies: project.technologies,
+          difficulty: project.difficulty,
+          likes: project.likes_count
+        })));
+      }
+    };
+
+    fetchFeaturedProjects();
+  }, []);
 
   return (
     <div className="min-h-screen">

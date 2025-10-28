@@ -41,8 +41,8 @@ export default function GenerateProblem() {
 
       setGeneratedProblem(data);
       toast({
-        title: "Problem Statement Generated!",
-        description: "AI has analyzed the domain and created a problem statement",
+        title: "Problem Discovered!",
+        description: `AI analyzed ${data.sourcesAnalyzed || 0} real-world sources from social media and forums`,
       });
     } catch (error: any) {
       console.error('Generation error:', error);
@@ -111,18 +111,18 @@ export default function GenerateProblem() {
           <div className="text-center space-y-2">
             <h1 className="text-4xl font-bold flex items-center justify-center gap-2">
               <Sparkles className="h-8 w-8 text-primary" />
-              AI Problem Statement Generator
+              AI Problem Discovery Engine
             </h1>
             <p className="text-muted-foreground">
-              Analyze real-world problems in any domain using AI-powered research
+              Discover real-world problems by analyzing social media, Reddit, forums, and online discussions
             </p>
           </div>
 
           <Card>
             <CardHeader>
-              <CardTitle>Generate Problem Statement</CardTitle>
+              <CardTitle>Discover Real-World Problems</CardTitle>
               <CardDescription>
-                Enter a domain, sector, or industry to analyze current challenges and generate a detailed problem statement
+                Our AI searches Reddit, X, forums, and social media to find actual pain points and complaints in your chosen domain
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -151,12 +151,12 @@ export default function GenerateProblem() {
                   {isGenerating ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Analyzing Domain...
+                      Searching the Internet...
                     </>
                   ) : (
                     <>
                       <Sparkles className="mr-2 h-4 w-4" />
-                      Generate Problem Statement
+                      Discover Real Problems
                     </>
                   )}
                 </Button>
