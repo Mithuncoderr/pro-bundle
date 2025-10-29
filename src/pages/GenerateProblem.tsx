@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,21 @@ export default function GenerateProblem() {
   const [generatedProblems, setGeneratedProblems] = useState<any[]>([]);
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast({
+          title: "Authentication required",
+          description: "Please sign in to generate problem statements",
+          variant: "destructive",
+        });
+        navigate("/auth");
+      }
+    };
+    checkAuth();
+  }, [navigate, toast]);
 
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();

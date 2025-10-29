@@ -13,13 +13,30 @@ serve(async (req) => {
 
   try {
     const { domain } = await req.json();
+    
+    // Input validation
+    if (!domain || typeof domain !== 'string') {
+      return new Response(
+        JSON.stringify({ error: 'Domain is required and must be a string' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (domain.length > 100) {
+      return new Response(
+        JSON.stringify({ error: 'Domain must be less than 100 characters' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const sanitizedDomain = domain.trim();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    console.log('Generating diverse problem ideas for domain:', domain);
+    console.log('Generating diverse problem ideas for domain:', sanitizedDomain);
 
     // Generate a random seed for variation
     const randomSeed = Math.random().toString(36).substring(7);
@@ -38,9 +55,9 @@ Each problem should:
 
 Generate varied problems covering different aspects of the domain - from consumer pain points to industry challenges, from technological gaps to process inefficiencies.`;
 
-    const userPrompt = `Generate 3-5 distinct, real-world problem statements for the "${domain}" sector.
+    const userPrompt = `Generate 3-5 distinct, real-world problem statements for the "${sanitizedDomain}" sector.
 
-Domain context: ${domain}
+Domain context: ${sanitizedDomain}
 Variation seed: ${randomSeed}
 Timestamp: ${timestamp}
 
