@@ -28,18 +28,41 @@ interface RedditPost {
   subreddit: string;
 }
 
+// Rotate through different search queries for variety
+const searchQueries = [
+  'problem OR frustrating OR "wish there was" OR issue OR challenge',
+  '"pain point" OR "difficult to" OR annoying OR "hate that" OR struggle',
+  '"need solution" OR "looking for" OR "anyone else" OR complaint OR feedback',
+  'inefficient OR "time consuming" OR "too expensive" OR "too complicated"',
+];
+
+// Rotate through different time periods for diverse results
+const timeFilters = ['week', 'month', 'year', 'all'];
+
+// Rotate through different sort methods
+const sortMethods = ['relevance', 'hot', 'top', 'comments'];
+
 async function searchReddit(domain: string): Promise<RedditPost[]> {
   try {
     const domainLower = domain.toLowerCase();
     const subreddits = domainToSubreddits[domainLower] || [];
     const posts: RedditPost[] = [];
 
-    // Search specific subreddits if available
+    // Randomize search parameters for variety
+    const randomQuery = searchQueries[Math.floor(Math.random() * searchQueries.length)];
+    const randomTime = timeFilters[Math.floor(Math.random() * timeFilters.length)];
+    const randomSort = sortMethods[Math.floor(Math.random() * sortMethods.length)];
+
+    console.log(`Search strategy: query="${randomQuery.substring(0, 30)}...", time=${randomTime}, sort=${randomSort}`);
+
+    // Search specific subreddits if available (increased from 2 to 3 for more coverage)
     if (subreddits.length > 0) {
-      for (const subreddit of subreddits.slice(0, 2)) { // Limit to 2 subreddits to avoid rate limits
+      // Shuffle subreddits for variety each time
+      const shuffled = [...subreddits].sort(() => Math.random() - 0.5);
+      
+      for (const subreddit of shuffled.slice(0, 3)) {
         try {
-          const searchQuery = `problem OR frustrating OR "wish there was" OR issue OR challenge`;
-          const url = `https://www.reddit.com/r/${subreddit}/search.json?q=${encodeURIComponent(searchQuery)}&restrict_sr=1&sort=relevance&limit=10&t=year`;
+          const url = `https://www.reddit.com/r/${subreddit}/search.json?q=${encodeURIComponent(randomQuery)}&restrict_sr=1&sort=${randomSort}&limit=15&t=${randomTime}`;
           
           const response = await fetch(url, {
             headers: { 'User-Agent': 'Lovable-ProblemFinder/1.0' }
@@ -67,10 +90,10 @@ async function searchReddit(domain: string): Promise<RedditPost[]> {
       }
     }
 
-    // Also do a site-wide search
+    // Also do a site-wide search with variation
     try {
-      const searchQuery = `"${domain}" AND (problem OR frustrating OR "wish there was" OR issue OR challenge)`;
-      const url = `https://www.reddit.com/search.json?q=${encodeURIComponent(searchQuery)}&sort=relevance&limit=10&t=year`;
+      const sitewideQuery = `"${domain}" AND (${randomQuery})`;
+      const url = `https://www.reddit.com/search.json?q=${encodeURIComponent(sitewideQuery)}&sort=${randomSort}&limit=15&t=${randomTime}`;
       
       const response = await fetch(url, {
         headers: { 'User-Agent': 'Lovable-ProblemFinder/1.0' }
@@ -93,13 +116,18 @@ async function searchReddit(domain: string): Promise<RedditPost[]> {
       console.error('Error in site-wide Reddit search:', error);
     }
 
+    // Deduplicate by URL
+    const uniquePosts = Array.from(
+      new Map(posts.map(post => [post.url, post])).values()
+    );
+
     // Filter and sort by engagement (score + comments)
-    const filteredPosts = posts
+    const filteredPosts = uniquePosts
       .filter(post => post.score > 5 && (post.title.length > 20 || post.selftext.length > 50))
       .sort((a, b) => (b.score + b.num_comments) - (a.score + a.num_comments))
-      .slice(0, 12); // Top 12 posts
+      .slice(0, 20); // Increased from 12 to 20 for deeper analysis
 
-    console.log(`Found ${filteredPosts.length} relevant Reddit posts for domain: ${domain}`);
+    console.log(`Found ${filteredPosts.length} unique Reddit posts for domain: ${domain}`);
     return filteredPosts;
   } catch (error) {
     console.error('Reddit search error:', error);
@@ -112,7 +140,7 @@ function formatRedditDataForAI(posts: RedditPost[], domain: string): string {
     return `No Reddit discussions found. Generate problems based on general knowledge of the ${domain} domain.`;
   }
 
-  let formatted = `=== REDDIT DISCUSSIONS (${posts.length} posts analyzed) ===\n\n`;
+  let formatted = `=== REDDIT DISCUSSIONS (${posts.length} posts analyzed from various timeframes and perspectives) ===\n\n`;
   
   posts.forEach((post, index) => {
     formatted += `Discussion ${index + 1} (${post.score} upvotes, ${post.num_comments} comments, r/${post.subreddit}):\n`;
@@ -120,10 +148,12 @@ function formatRedditDataForAI(posts: RedditPost[], domain: string): string {
     if (post.selftext) {
       formatted += `Content: ${post.selftext}\n`;
     }
+    formatted += `Source: ${post.url}\n`;
     formatted += `\n`;
   });
 
   formatted += `\n=== END REDDIT DATA ===\n`;
+  formatted += `\nNote: These discussions span different timeframes and sorting criteria to provide diverse perspectives.\n`;
   return formatted;
 }
 
