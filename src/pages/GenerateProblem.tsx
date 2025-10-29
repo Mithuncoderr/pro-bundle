@@ -14,6 +14,7 @@ export default function GenerateProblem() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [generatedProblems, setGeneratedProblems] = useState<any[]>([]);
+  const [metadata, setMetadata] = useState<any>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -46,6 +47,7 @@ export default function GenerateProblem() {
 
     setIsGenerating(true);
     setGeneratedProblems([]);
+    setMetadata(null);
 
     try {
       const { data, error } = await supabase.functions.invoke('generate-problem', {
@@ -55,9 +57,15 @@ export default function GenerateProblem() {
       if (error) throw error;
 
       setGeneratedProblems(data.problems || []);
+      setMetadata(data.metadata);
+      
+      const redditCount = data.metadata?.redditPostsAnalyzed || 0;
+      
       toast({
         title: "Problems Discovered!",
-        description: `Generated ${data.problems?.length || 0} diverse problem ideas`,
+        description: redditCount > 0 
+          ? `Analyzed ${redditCount} Reddit discussions and generated ${data.problems?.length || 0} problem statements`
+          : `Generated ${data.problems?.length || 0} problem statements`,
       });
     } catch (error: any) {
       console.error('Generation error:', error);
@@ -127,7 +135,7 @@ export default function GenerateProblem() {
               AI Problem Discovery Engine
             </h1>
             <p className="text-muted-foreground">
-              Generate multiple diverse problem statements for any domain using advanced AI
+              AI analyzes Reddit discussions to discover real problems people are facing
             </p>
           </div>
 
@@ -135,7 +143,7 @@ export default function GenerateProblem() {
             <CardHeader>
               <CardTitle>Generate Problem Ideas</CardTitle>
               <CardDescription>
-                AI analyzes the domain and generates 3-5 diverse, actionable problem statements
+                AI searches Reddit for real discussions, then analyzes them to extract 3-5 genuine problem statements
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -164,12 +172,12 @@ export default function GenerateProblem() {
                   {isGenerating ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Generating Ideas...
+                      Searching Reddit & Analyzing...
                     </>
                   ) : (
                     <>
                       <Sparkles className="mr-2 h-4 w-4" />
-                      Generate Problem Ideas
+                      Discover Problems from Reddit
                     </>
                   )}
                 </Button>
@@ -179,7 +187,16 @@ export default function GenerateProblem() {
 
           {generatedProblems.length > 0 && (
             <div className="space-y-4">
-              <h2 className="text-2xl font-bold">Generated Problem Ideas ({generatedProblems.length})</h2>
+              <div className="space-y-2">
+                <h2 className="text-2xl font-bold">Generated Problem Ideas ({generatedProblems.length})</h2>
+                {metadata?.redditPostsAnalyzed > 0 && (
+                  <p className="text-sm text-muted-foreground">
+                    📊 Based on analysis of {metadata.redditPostsAnalyzed} Reddit discussions from{' '}
+                    {metadata.subreddits?.slice(0, 3).map((s: string) => `r/${s}`).join(', ')}
+                    {metadata.subreddits?.length > 3 && ` and ${metadata.subreddits.length - 3} more subreddit${metadata.subreddits.length > 4 ? 's' : ''}`}
+                  </p>
+                )}
+              </div>
               {generatedProblems.map((problem, index) => (
                 <Card key={index} className="border-primary/20">
                   <CardHeader>
