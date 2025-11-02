@@ -1,44 +1,98 @@
 import { useParams, Link } from "react-router-dom";
+import { useEffect, useState } from "react";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, Star, Clock, Users, ExternalLink } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+
+interface Project {
+  id: string;
+  title: string;
+  description: string;
+  technologies: string[];
+  difficulty: string;
+  likes_count: number;
+  duration: string | null;
+  contributors_count: number;
+  full_description: string | null;
+  requirements: string[] | null;
+  resources: string[] | null;
+}
 
 const ProjectDetail = () => {
   const { id } = useParams();
+  const { toast } = useToast();
+  const [project, setProject] = useState<Project | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  // Mock data - in a real app this would come from an API
-  const project = {
-    id: Number(id),
-    title: "AI Chatbot with NLP",
-    description: "Build an intelligent chatbot using natural language processing and machine learning. This project will help you understand the fundamentals of NLP, machine learning models, and how to integrate them into a web application.",
-    technologies: ["Python", "TensorFlow", "React", "Flask", "MongoDB"],
-    difficulty: "Advanced",
-    likes: 245,
-    duration: "4-6 weeks",
-    contributors: 12,
-    fullDescription: `This comprehensive project will guide you through building a fully functional AI-powered chatbot. You'll learn how to process natural language, train machine learning models, and create an interactive user interface.
+  useEffect(() => {
+    const fetchProject = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('projects')
+          .select('*')
+          .eq('id', id)
+          .maybeSingle();
 
-Key learning outcomes:
-- Understanding natural language processing fundamentals
-- Training and deploying ML models
-- Building REST APIs with Flask
-- Creating responsive UIs with React
-- Database integration and management`,
-    requirements: [
-      "Basic Python programming knowledge",
-      "Understanding of machine learning concepts",
-      "Familiarity with web development",
-      "MongoDB basics"
-    ],
-    resources: [
-      "TensorFlow Documentation",
-      "NLP with Python course",
-      "React official tutorial",
-      "Flask Mega-Tutorial"
-    ]
-  };
+        if (error) throw error;
+        
+        if (!data) {
+          toast({
+            title: "Project not found",
+            description: "The project you're looking for doesn't exist.",
+            variant: "destructive"
+          });
+          return;
+        }
+
+        setProject(data);
+      } catch (error) {
+        console.error('Error fetching project:', error);
+        toast({
+          title: "Error loading project",
+          description: "Failed to load project details. Please try again.",
+          variant: "destructive"
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProject();
+  }, [id, toast]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen">
+        <Navbar />
+        <div className="pt-24 pb-20 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading project details...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!project) {
+    return (
+      <div className="min-h-screen">
+        <Navbar />
+        <div className="pt-24 pb-20 flex items-center justify-center">
+          <div className="text-center">
+            <p className="text-xl text-muted-foreground mb-4">Project not found</p>
+            <Link to="/browse">
+              <Button>Back to Browse</Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen">
@@ -63,7 +117,7 @@ Key learning outcomes:
                   </Badge>
                   <div className="flex items-center gap-1 text-muted-foreground">
                     <Star className="h-4 w-4" />
-                    <span>{project.likes}</span>
+                    <span>{project.likes_count}</span>
                   </div>
                 </div>
                 
@@ -79,61 +133,71 @@ Key learning outcomes:
                 ))}
               </div>
 
-              <Card className="bg-card/50 backdrop-blur-sm">
-                <CardContent className="pt-6">
-                  <h2 className="text-2xl font-semibold mb-4">Project Overview</h2>
-                  <p className="text-muted-foreground whitespace-pre-line">{project.fullDescription}</p>
-                </CardContent>
-              </Card>
+              {project.full_description && (
+                <Card className="bg-card/50 backdrop-blur-sm">
+                  <CardContent className="pt-6">
+                    <h2 className="text-2xl font-semibold mb-4">Project Overview</h2>
+                    <p className="text-muted-foreground whitespace-pre-line">{project.full_description}</p>
+                  </CardContent>
+                </Card>
+              )}
 
-              <Card className="bg-card/50 backdrop-blur-sm">
-                <CardContent className="pt-6">
-                  <h2 className="text-2xl font-semibold mb-4">Prerequisites</h2>
-                  <ul className="space-y-2">
-                    {project.requirements.map((req, index) => (
-                      <li key={index} className="flex items-start gap-2 text-muted-foreground">
-                        <span className="text-primary mt-1">•</span>
-                        {req}
-                      </li>
-                    ))}
-                  </ul>
-                </CardContent>
-              </Card>
+              {project.requirements && project.requirements.length > 0 && (
+                <Card className="bg-card/50 backdrop-blur-sm">
+                  <CardContent className="pt-6">
+                    <h2 className="text-2xl font-semibold mb-4">Prerequisites</h2>
+                    <ul className="space-y-2">
+                      {project.requirements.map((req, index) => (
+                        <li key={index} className="flex items-start gap-2 text-muted-foreground">
+                          <span className="text-primary mt-1">•</span>
+                          {req}
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              )}
 
-              <Card className="bg-card/50 backdrop-blur-sm">
-                <CardContent className="pt-6">
-                  <h2 className="text-2xl font-semibold mb-4">Learning Resources</h2>
-                  <ul className="space-y-2">
-                    {project.resources.map((resource, index) => (
-                      <li key={index} className="flex items-center gap-2 text-primary hover:text-primary/80">
-                        <ExternalLink className="h-4 w-4" />
-                        <span>{resource}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </CardContent>
-              </Card>
+              {project.resources && project.resources.length > 0 && (
+                <Card className="bg-card/50 backdrop-blur-sm">
+                  <CardContent className="pt-6">
+                    <h2 className="text-2xl font-semibold mb-4">Learning Resources</h2>
+                    <ul className="space-y-2">
+                      {project.resources.map((resource, index) => (
+                        <li key={index} className="flex items-center gap-2 text-primary hover:text-primary/80">
+                          <ExternalLink className="h-4 w-4" />
+                          <span>{resource}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              )}
             </div>
 
             {/* Sidebar */}
             <div className="space-y-6">
               <Card className="bg-card/50 backdrop-blur-sm">
                 <CardContent className="pt-6 space-y-4">
-                  <div className="flex items-center gap-3 text-muted-foreground">
-                    <Clock className="h-5 w-5" />
-                    <div>
-                      <p className="text-sm">Estimated Duration</p>
-                      <p className="font-semibold text-foreground">{project.duration}</p>
+                  {project.duration && (
+                    <div className="flex items-center gap-3 text-muted-foreground">
+                      <Clock className="h-5 w-5" />
+                      <div>
+                        <p className="text-sm">Estimated Duration</p>
+                        <p className="font-semibold text-foreground">{project.duration}</p>
+                      </div>
                     </div>
-                  </div>
+                  )}
                   
-                  <div className="flex items-center gap-3 text-muted-foreground">
-                    <Users className="h-5 w-5" />
-                    <div>
-                      <p className="text-sm">Contributors</p>
-                      <p className="font-semibold text-foreground">{project.contributors}</p>
+                  {project.contributors_count > 0 && (
+                    <div className="flex items-center gap-3 text-muted-foreground">
+                      <Users className="h-5 w-5" />
+                      <div>
+                        <p className="text-sm">Contributors</p>
+                        <p className="font-semibold text-foreground">{project.contributors_count}</p>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </CardContent>
               </Card>
 

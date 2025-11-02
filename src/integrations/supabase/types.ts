@@ -222,36 +222,51 @@ export type Database = {
       }
       projects: {
         Row: {
+          contributors_count: number | null
           created_at: string
           created_by: string
           description: string
           difficulty: string
+          duration: string | null
+          full_description: string | null
           id: string
           likes_count: number
+          requirements: string[] | null
+          resources: string[] | null
           technologies: string[]
           title: string
           updated_at: string
           views_count: number
         }
         Insert: {
+          contributors_count?: number | null
           created_at?: string
           created_by: string
           description: string
           difficulty: string
+          duration?: string | null
+          full_description?: string | null
           id?: string
           likes_count?: number
+          requirements?: string[] | null
+          resources?: string[] | null
           technologies?: string[]
           title: string
           updated_at?: string
           views_count?: number
         }
         Update: {
+          contributors_count?: number | null
           created_at?: string
           created_by?: string
           description?: string
           difficulty?: string
+          duration?: string | null
+          full_description?: string | null
           id?: string
           likes_count?: number
+          requirements?: string[] | null
+          resources?: string[] | null
           technologies?: string[]
           title?: string
           updated_at?: string
