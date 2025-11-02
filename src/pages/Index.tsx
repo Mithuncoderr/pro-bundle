@@ -25,7 +25,9 @@ const Index = () => {
           description: project.description,
           technologies: project.technologies,
           difficulty: project.difficulty,
-          likes: project.likes_count
+          likes: project.likes_count,
+          duration: project.duration,
+          views: project.views_count
         })));
       }
     };

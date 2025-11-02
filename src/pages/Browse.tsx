@@ -13,6 +13,8 @@ interface Project {
   technologies: string[];
   difficulty: string;
   likes_count: number;
+  duration: string | null;
+  views_count: number;
 }
 
 const Browse = () => {
@@ -147,6 +149,8 @@ const Browse = () => {
                   technologies={project.technologies}
                   difficulty={project.difficulty}
                   likes={project.likes_count}
+                  duration={project.duration}
+                  views={project.views_count}
                 />
               ))}
             </div>
