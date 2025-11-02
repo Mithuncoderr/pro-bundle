@@ -5,8 +5,7 @@ import Navbar from "@/components/Navbar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MessageSquare, ThumbsUp, Calendar } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { MessageSquare, ThumbsUp, Tag } from "lucide-react";
 
 interface ProblemStatement {
   id: string;
@@ -55,56 +54,59 @@ const Problems = () => {
               </p>
             </div>
             <Link to="/submit-problem">
-              <Button className="bg-primary hover:bg-primary/90">
+              <Button size="lg" className="bg-primary hover:bg-primary/90">
                 Post a Problem
               </Button>
             </Link>
           </div>
 
-          <div className="space-y-6">
+          <div className="space-y-4">
             {problems.map((problem) => (
-              <Card key={problem.id} className="bg-card/50 backdrop-blur-sm hover:border-primary/50 transition-all">
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <CardTitle className="mb-2 text-2xl hover:text-primary transition-colors cursor-pointer">
+              <Card key={problem.id} className="group bg-card/50 backdrop-blur-sm hover:border-primary/40 hover:shadow-md transition-all">
+                <CardContent className="pt-6">
+                  <div className="space-y-3">
+                    {/* Title & Description */}
+                    <div>
+                      <h3 className="text-xl font-semibold mb-2 group-hover:text-primary transition-colors">
                         {problem.title}
-                      </CardTitle>
-                      <CardDescription className="text-base">
+                      </h3>
+                      <p className="text-muted-foreground leading-relaxed">
                         {problem.description}
-                      </CardDescription>
+                      </p>
                     </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {problem.tags && problem.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      {problem.tags.map((tag, index) => (
-                        <Badge key={index} variant="outline">
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
-                  
-                  <div className="flex items-center justify-between text-sm text-muted-foreground">
-                    <div className="flex items-center gap-4">
-                      <span>by {problem.profiles?.username || "Anonymous"}</span>
-                      <div className="flex items-center gap-1">
-                        <Calendar className="h-4 w-4" />
-                        {formatDistanceToNow(new Date(problem.created_at), { addSuffix: true })}
+
+                    {/* Tags & Metadata */}
+                    <div className="flex items-center justify-between pt-3 border-t border-border/40">
+                      <div className="flex items-center gap-3">
+                        {problem.tags && problem.tags.length > 0 && (
+                          <div className="flex items-center gap-1.5">
+                            <Tag className="h-3.5 w-3.5 text-muted-foreground" />
+                            <div className="flex gap-1.5">
+                              {problem.tags.slice(0, 3).map((tag, index) => (
+                                <Badge key={index} variant="secondary" className="text-xs px-2 py-0">
+                                  {tag}
+                                </Badge>
+                              ))}
+                              {problem.tags.length > 3 && (
+                                <Badge variant="secondary" className="text-xs px-2 py-0">
+                                  +{problem.tags.length - 3}
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-4">
-                      <button className="flex items-center gap-1 hover:text-primary transition-colors">
-                        <ThumbsUp className="h-4 w-4" />
-                        {problem.upvotes_count}
-                      </button>
-                      <button className="flex items-center gap-1 hover:text-primary transition-colors">
-                        <MessageSquare className="h-4 w-4" />
-                        {problem.comments_count}
-                      </button>
+                      
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                        <button className="flex items-center gap-1.5 hover:text-primary transition-colors">
+                          <ThumbsUp className="h-4 w-4" />
+                          <span>{problem.upvotes_count}</span>
+                        </button>
+                        <button className="flex items-center gap-1.5 hover:text-primary transition-colors">
+                          <MessageSquare className="h-4 w-4" />
+                          <span>{problem.comments_count}</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </CardContent>
