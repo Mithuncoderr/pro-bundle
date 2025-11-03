@@ -49,7 +49,12 @@ const Community = () => {
   const fetchPosts = async () => {
     const { data, error } = await supabase
       .from("community_posts")
-      .select("*")
+      .select(`
+        *,
+        profiles (
+          username
+        )
+      `)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -106,6 +111,60 @@ const Community = () => {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleLike = async (postId: string) => {
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please log in to like posts.",
+        variant: "destructive",
+      });
+      navigate("/auth");
+      return;
+    }
+
+    try {
+      const { data: existingLike } = await supabase
+        .from("likes")
+        .select()
+        .eq("post_id", postId)
+        .eq("user_id", user.id)
+        .single();
+
+      if (existingLike) {
+        await supabase.from("likes").delete().eq("id", existingLike.id);
+        await supabase.rpc("decrement_likes_count", { post_id: postId });
+      } else {
+        await supabase.from("likes").insert({ post_id: postId, user_id: user.id });
+        await supabase.rpc("increment_likes_count", { post_id: postId });
+      }
+
+      fetchPosts();
+    } catch (error: any) {
+      toast({
+        title: "Failed to like",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleShare = async (postId: string) => {
+    const url = `${window.location.origin}/community#${postId}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      toast({
+        title: "Link copied!",
+        description: "Post link copied to clipboard.",
+      });
+    } catch {
+      toast({
+        title: "Failed to copy",
+        description: "Could not copy link to clipboard.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -186,15 +245,24 @@ const Community = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center gap-6 text-muted-foreground">
-                    <button className="flex items-center gap-2 hover:text-primary transition-colors">
+                    <button 
+                      onClick={() => handleLike(post.id)}
+                      className="flex items-center gap-2 hover:text-primary transition-colors"
+                    >
                       <Heart className="h-5 w-5" />
                       <span>{post.likes_count}</span>
                     </button>
-                    <button className="flex items-center gap-2 hover:text-primary transition-colors">
+                    <button 
+                      onClick={() => toast({ title: "Comments coming soon!", description: "This feature is under development." })}
+                      className="flex items-center gap-2 hover:text-primary transition-colors"
+                    >
                       <MessageCircle className="h-5 w-5" />
                       <span>{post.comments_count}</span>
                     </button>
-                    <button className="flex items-center gap-2 hover:text-primary transition-colors">
+                    <button 
+                      onClick={() => handleShare(post.id)}
+                      className="flex items-center gap-2 hover:text-primary transition-colors"
+                    >
                       <Share2 className="h-5 w-5" />
                       <span>Share</span>
                     </button>
