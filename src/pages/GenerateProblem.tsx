@@ -198,14 +198,18 @@ export default function GenerateProblem() {
                 )}
               </div>
               {generatedProblems.map((problem, index) => (
-                <Card key={index} className="border-primary/20">
+                <Card key={index} className="border-primary/20 hover:border-primary/40 transition-all">
                   <CardHeader>
                     <div className="flex items-start justify-between gap-4">
-                      <div className="space-y-1 flex-1">
-                        <CardTitle className="text-xl">{problem.title}</CardTitle>
-                        <CardDescription className="flex items-center gap-2">
-                          <Badge variant="outline">{problem.category}</Badge>
-                        </CardDescription>
+                      <div className="space-y-2 flex-1">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline">{problem.category || domain}</Badge>
+                          <Badge variant="secondary">Medium</Badge>
+                        </div>
+                        <CardTitle className="text-2xl">{problem.title}</CardTitle>
+                        <p className="text-muted-foreground line-clamp-2">
+                          {problem.description}
+                        </p>
                       </div>
                       <Button onClick={() => handleSave(problem)} disabled={isSaving} size="sm">
                         {isSaving ? (
@@ -222,19 +226,18 @@ export default function GenerateProblem() {
                       </Button>
                     </div>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="prose prose-sm max-w-none">
-                      <p className="text-foreground whitespace-pre-wrap">
-                        {problem.description}
-                      </p>
-                    </div>
-                    
+                  <CardContent className="pt-0">
                     <div className="flex flex-wrap gap-2">
-                      {problem.tags?.map((tag: string, tagIndex: number) => (
-                        <Badge key={tagIndex} variant="secondary">
+                      {problem.tags?.slice(0, 4).map((tag: string, tagIndex: number) => (
+                        <Badge key={tagIndex} variant="secondary" className="text-xs">
                           {tag}
                         </Badge>
                       ))}
+                      {problem.tags?.length > 4 && (
+                        <Badge variant="secondary" className="text-xs">
+                          +{problem.tags.length - 4} more
+                        </Badge>
+                      )}
                     </div>
                   </CardContent>
                 </Card>

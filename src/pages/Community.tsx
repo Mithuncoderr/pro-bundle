@@ -31,6 +31,7 @@ const Community = () => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [newPost, setNewPost] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -42,9 +43,25 @@ const Community = () => {
     });
 
     fetchPosts();
+    fetchUserLikes();
 
     return () => subscription.unsubscribe();
   }, []);
+
+  const fetchUserLikes = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data } = await supabase
+      .from("likes")
+      .select("post_id")
+      .eq("user_id", user.id)
+      .not("post_id", "is", null);
+
+    if (data) {
+      setLikedPosts(new Set(data.map(like => like.post_id!)));
+    }
+  };
 
   const fetchPosts = async () => {
     const { data: postsData, error: postsError } = await supabase
@@ -138,19 +155,29 @@ const Community = () => {
     }
 
     try {
-      const { data: existingLike } = await supabase
-        .from("likes")
-        .select()
-        .eq("post_id", postId)
-        .eq("user_id", user.id)
-        .single();
+      const isLiked = likedPosts.has(postId);
 
-      if (existingLike) {
-        await supabase.from("likes").delete().eq("id", existingLike.id);
-        await supabase.rpc("decrement_likes_count", { post_id: postId });
+      if (isLiked) {
+        const { data: existingLike } = await supabase
+          .from("likes")
+          .select()
+          .eq("post_id", postId)
+          .eq("user_id", user.id)
+          .single();
+
+        if (existingLike) {
+          await supabase.from("likes").delete().eq("id", existingLike.id);
+          await supabase.rpc("decrement_likes_count", { post_id: postId });
+          setLikedPosts(prev => {
+            const updated = new Set(prev);
+            updated.delete(postId);
+            return updated;
+          });
+        }
       } else {
         await supabase.from("likes").insert({ post_id: postId, user_id: user.id });
         await supabase.rpc("increment_likes_count", { post_id: postId });
+        setLikedPosts(prev => new Set(prev).add(postId));
       }
 
       fetchPosts();
@@ -259,9 +286,13 @@ const Community = () => {
                   <div className="flex items-center gap-6 text-muted-foreground">
                     <button 
                       onClick={() => handleLike(post.id)}
-                      className="flex items-center gap-2 hover:text-primary transition-colors"
+                      className={`flex items-center gap-2 transition-colors ${
+                        likedPosts.has(post.id)
+                          ? "text-red-500 hover:text-red-600"
+                          : "hover:text-primary"
+                      }`}
                     >
-                      <Heart className="h-5 w-5" />
+                      <Heart className={`h-5 w-5 ${likedPosts.has(post.id) ? "fill-current" : ""}`} />
                       <span>{post.likes_count}</span>
                     </button>
                     <button 
