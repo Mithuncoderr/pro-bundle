@@ -28,6 +28,23 @@ const ProjectDetail = () => {
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const handleShare = async () => {
+    try {
+      const url = window.location.href;
+      await navigator.clipboard.writeText(url);
+      toast({
+        title: "Link copied!",
+        description: "Project link copied to clipboard",
+      });
+    } catch (error) {
+      toast({
+        title: "Failed to copy",
+        description: "Could not copy link to clipboard",
+        variant: "destructive",
+      });
+    }
+  };
+
   useEffect(() => {
     const fetchProject = async () => {
       try {
@@ -206,7 +223,7 @@ const ProjectDetail = () => {
                 Save Project
               </Button>
 
-              <Button variant="outline" className="w-full">
+              <Button variant="outline" className="w-full" onClick={handleShare}>
                 Share Project
               </Button>
             </div>
