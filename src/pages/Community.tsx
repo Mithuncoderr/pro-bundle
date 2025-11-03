@@ -47,21 +47,33 @@ const Community = () => {
   }, []);
 
   const fetchPosts = async () => {
-    const { data, error } = await supabase
+    const { data: postsData, error: postsError } = await supabase
       .from("community_posts")
-      .select(`
-        *,
-        profiles (
-          username
-        )
-      `)
+      .select("*")
       .order("created_at", { ascending: false });
 
-    if (error) {
-      console.error("Error fetching posts:", error);
-    } else {
-      setPosts(data as any || []);
+    if (postsError) {
+      console.error("Error fetching posts:", postsError);
+      return;
     }
+
+    // Fetch profiles for all unique authors
+    const authorIds = [...new Set(postsData?.map(p => p.author) || [])];
+    const { data: profilesData } = await supabase
+      .from("profiles")
+      .select("id, username")
+      .in("id", authorIds);
+
+    // Create a map of author id to username
+    const profilesMap = new Map(profilesData?.map(p => [p.id, p.username]) || []);
+
+    // Merge the data
+    const postsWithProfiles = postsData?.map(post => ({
+      ...post,
+      profiles: { username: profilesMap.get(post.author) || "Anonymous" }
+    })) || [];
+
+    setPosts(postsWithProfiles as any);
   };
 
   const handleCreatePost = async () => {
