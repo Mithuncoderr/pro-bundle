@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Code2, Home, Lightbulb, Users, FileQuestion, LogOut, User, Sparkles } from "lucide-react";
+import { Code2, Home, Lightbulb, Users, FileQuestion, LogOut, User, Sparkles, Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
 import { User as SupabaseUser } from "@supabase/supabase-js";
@@ -91,6 +91,10 @@ const Navbar = () => {
                   <DropdownMenuItem onClick={() => navigate('/account')}>
                     <User className="mr-2 h-4 w-4" />
                     Account Settings
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate('/bulk-import')}>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Bulk Import
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={handleLogout}>
                     <LogOut className="mr-2 h-4 w-4" />

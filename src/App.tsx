@@ -13,6 +13,7 @@ import GenerateProblem from "./pages/GenerateProblem";
 import Community from "./pages/Community";
 import Auth from "./pages/Auth";
 import Account from "./pages/Account";
+import BulkImport from "./pages/BulkImport";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,6 +35,7 @@ const App = () => (
           <Route path="/community" element={<Community />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/account" element={<Account />} />
+          <Route path="/bulk-import" element={<BulkImport />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
