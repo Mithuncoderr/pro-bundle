@@ -14,6 +14,7 @@ import Community from "./pages/Community";
 import Auth from "./pages/Auth";
 import Account from "./pages/Account";
 import BulkImport from "./pages/BulkImport";
+import AdminPanel from "./pages/AdminPanel";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -36,6 +37,7 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/account" element={<Account />} />
           <Route path="/bulk-import" element={<BulkImport />} />
+          <Route path="/admin-panel" element={<AdminPanel />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

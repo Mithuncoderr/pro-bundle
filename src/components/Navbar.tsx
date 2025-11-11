@@ -16,14 +16,42 @@ const Navbar = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [user, setUser] = useState<SupabaseUser | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
       setUser(session?.user ?? null);
-    });
+      
+      if (session?.user) {
+        const { data: roleData } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", session.user.id)
+          .eq("role", "admin")
+          .single();
+        
+        setIsAdmin(!!roleData);
+      }
+    };
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
+    checkAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_, session) => {
       setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        const { data: roleData } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", session.user.id)
+          .eq("role", "admin")
+          .single();
+        
+        setIsAdmin(!!roleData);
+      } else {
+        setIsAdmin(false);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -92,10 +120,18 @@ const Navbar = () => {
                     <User className="mr-2 h-4 w-4" />
                     Account Settings
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate('/bulk-import')}>
-                    <Upload className="mr-2 h-4 w-4" />
-                    Bulk Import
-                  </DropdownMenuItem>
+                  {isAdmin && (
+                    <>
+                      <DropdownMenuItem onClick={() => navigate('/admin-panel')}>
+                        <Upload className="mr-2 h-4 w-4" />
+                        Admin Panel
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => navigate('/bulk-import')}>
+                        <Upload className="mr-2 h-4 w-4" />
+                        Bulk Import
+                      </DropdownMenuItem>
+                    </>
+                  )}
                   <DropdownMenuItem onClick={handleLogout}>
                     <LogOut className="mr-2 h-4 w-4" />
                     Logout

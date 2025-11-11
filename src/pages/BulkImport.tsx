@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,48 @@ const BulkImport = () => {
   const [jsonData, setJsonData] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [checkingAccess, setCheckingAccess] = useState(true);
+
+  // Check admin access
+  useEffect(() => {
+    const checkAdminAccess = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+          navigate("/auth");
+          return;
+        }
+
+        const { data: roleData, error } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id)
+          .eq("role", "admin")
+          .single();
+
+        if (error || !roleData) {
+          toast({
+            title: "Access Denied",
+            description: "You don't have permission to access this page.",
+            variant: "destructive",
+          });
+          navigate("/");
+          return;
+        }
+
+        setIsAdmin(true);
+      } catch (error) {
+        console.error("Error checking admin access:", error);
+        navigate("/");
+      } finally {
+        setCheckingAccess(false);
+      }
+    };
+
+    checkAdminAccess();
+  }, [navigate, toast]);
 
   const handleCsvUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -160,6 +202,14 @@ const BulkImport = () => {
       difficulty: "Beginner"
     }
   ];
+
+  if (checkingAccess) {
+    return <div>Loading...</div>;
+  }
+
+  if (!isAdmin) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-background">

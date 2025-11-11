@@ -151,6 +151,51 @@ export type Database = {
           },
         ]
       }
+      pending_submissions: {
+        Row: {
+          admin_notes: string | null
+          created_at: string
+          description: string
+          difficulty: string
+          id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          submitted_by: string
+          technologies: string[]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string
+          description: string
+          difficulty: string
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          submitted_by: string
+          technologies?: string[]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string
+          description?: string
+          difficulty?: string
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          submitted_by?: string
+          technologies?: string[]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       problem_statements: {
         Row: {
           category: string | null

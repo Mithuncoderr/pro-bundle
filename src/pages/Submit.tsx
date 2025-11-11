@@ -22,6 +22,7 @@ const Submit = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [user, setUser] = useState<any>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -30,19 +31,42 @@ const Submit = () => {
   const [difficulty, setDifficulty] = useState<"Beginner" | "Intermediate" | "Advanced">("Beginner");
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         navigate("/auth");
       } else {
         setUser(session.user);
+        
+        // Check if user is admin
+        const { data: roleData } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", session.user.id)
+          .eq("role", "admin")
+          .single();
+        
+        setIsAdmin(!!roleData);
       }
-    });
+    };
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
+    checkAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_, session) => {
       if (!session) {
         navigate("/auth");
       } else {
         setUser(session.user);
+        
+        // Check if user is admin
+        const { data: roleData } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", session.user.id)
+          .eq("role", "admin")
+          .single();
+        
+        setIsAdmin(!!roleData);
       }
     });
 
@@ -84,30 +108,52 @@ const Submit = () => {
         difficulty,
       });
 
-      const { error } = await supabase
-        .from("projects")
-        .insert({
-          title: validated.title,
-          description: validated.description,
-          technologies: validated.technologies,
-          difficulty: validated.difficulty,
-          created_by: user.id,
+      if (isAdmin) {
+        // Admin: Post directly to projects
+        const { error } = await supabase
+          .from("projects")
+          .insert({
+            title: validated.title,
+            description: validated.description,
+            technologies: validated.technologies,
+            difficulty: validated.difficulty,
+            created_by: user.id,
+          });
+
+        if (error) throw error;
+
+        toast({
+          title: "Success!",
+          description: "Project published directly to browse page.",
         });
 
-      if (error) throw error;
+        navigate("/browse");
+      } else {
+        // Regular user: Submit to pending_submissions
+        const { error } = await supabase
+          .from("pending_submissions")
+          .insert({
+            title: validated.title,
+            description: validated.description,
+            technologies: validated.technologies,
+            difficulty: validated.difficulty,
+            submitted_by: user.id,
+            status: "pending",
+          });
 
-      toast({
-        title: "Success!",
-        description: "Your project idea has been submitted.",
-      });
+        if (error) throw error;
+
+        toast({
+          title: "Submission received!",
+          description: "Your project idea has been sent for moderation. An admin will review it soon.",
+        });
+      }
 
       setTitle("");
       setDescription("");
       setTechnologies([]);
       setDifficulty("Beginner");
       setTechInput("");
-      
-      navigate("/browse");
     } catch (error: any) {
       toast({
         title: "Submission failed",
@@ -132,7 +178,9 @@ const Submit = () => {
           <div className="mb-8">
             <h1 className="text-4xl font-bold mb-4">Submit Your Project Idea</h1>
             <p className="text-muted-foreground text-lg">
-              Share your project idea with the community and help fellow students learn
+              {isAdmin 
+                ? "Share your project idea with the community and help fellow students learn"
+                : "Submit your project idea for moderation. An admin will review and publish it."}
             </p>
           </div>
 
@@ -212,7 +260,7 @@ const Submit = () => {
                 </div>
 
                 <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={isLoading}>
-                  {isLoading ? "Submitting..." : "Submit Project Idea"}
+                  {isLoading ? "Submitting..." : (isAdmin ? "Publish Project" : "Submit for Review")}
                 </Button>
               </form>
             </CardContent>
