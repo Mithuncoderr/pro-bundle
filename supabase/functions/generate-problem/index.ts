@@ -28,12 +28,13 @@ interface RedditPost {
   subreddit: string;
 }
 
-// Rotate through different search queries for variety
+// Enhanced search queries focused on pain points
 const searchQueries = [
-  'problem OR frustrating OR "wish there was" OR issue OR challenge',
-  '"pain point" OR "difficult to" OR annoying OR "hate that" OR struggle',
-  '"need solution" OR "looking for" OR "anyone else" OR complaint OR feedback',
-  'inefficient OR "time consuming" OR "too expensive" OR "too complicated"',
+  'problem OR frustrating OR "pain point" OR "struggling with" OR "can\'t find"',
+  '"wish there was" OR "need a solution" OR "looking for a way" OR "how do I"',
+  '"hate that" OR annoying OR "difficult to" OR "time consuming" OR inefficient',
+  'complaint OR issue OR "too expensive" OR "doesn\'t work" OR "broken" OR frustration',
+  '"anyone else" OR "am I the only one" OR "why is it so hard" OR "fed up with"',
 ];
 
 // Rotate through different time periods for diverse results
@@ -121,11 +122,19 @@ async function searchReddit(domain: string): Promise<RedditPost[]> {
       new Map(posts.map(post => [post.url, post])).values()
     );
 
-    // Filter and sort by engagement (score + comments)
+    // Calculate engagement score: upvotes + (comments * 2) - prioritize discussion
+    const calculateEngagement = (post: RedditPost) => post.score + (post.num_comments * 2);
+    
+    // Filter for HIGH-TRAFFIC content only
     const filteredPosts = uniquePosts
-      .filter(post => post.score > 5 && (post.title.length > 20 || post.selftext.length > 50))
-      .sort((a, b) => (b.score + b.num_comments) - (a.score + a.num_comments))
-      .slice(0, 20); // Increased from 12 to 20 for deeper analysis
+      .filter(post => {
+        const engagement = calculateEngagement(post);
+        const hasContent = post.title.length > 20 || post.selftext.length > 50;
+        // Require minimum engagement (10+ upvotes OR 5+ comments)
+        return hasContent && (post.score >= 10 || post.num_comments >= 5);
+      })
+      .sort((a, b) => calculateEngagement(b) - calculateEngagement(a))
+      .slice(0, 25); // Top 25 highest-traffic posts
 
     console.log(`Found ${filteredPosts.length} unique Reddit posts for domain: ${domain}`);
     return filteredPosts;
@@ -140,10 +149,11 @@ function formatRedditDataForAI(posts: RedditPost[], domain: string): string {
     return `No Reddit discussions found. Generate problems based on general knowledge of the ${domain} domain.`;
   }
 
-  let formatted = `=== REDDIT DISCUSSIONS (${posts.length} posts analyzed from various timeframes and perspectives) ===\n\n`;
+  let formatted = `=== HIGH-TRAFFIC REDDIT DISCUSSIONS (${posts.length} posts, sorted by engagement) ===\n\n`;
   
   posts.forEach((post, index) => {
-    formatted += `Discussion ${index + 1} (${post.score} upvotes, ${post.num_comments} comments, r/${post.subreddit}):\n`;
+    const engagement = post.score + (post.num_comments * 2);
+    formatted += `Discussion ${index + 1} [🔥 ENGAGEMENT: ${engagement} | ⬆️ ${post.score} upvotes | 💬 ${post.num_comments} comments | 📍 r/${post.subreddit}]:\n`;
     formatted += `Title: ${post.title}\n`;
     if (post.selftext) {
       formatted += `Content: ${post.selftext}\n`;
@@ -152,8 +162,8 @@ function formatRedditDataForAI(posts: RedditPost[], domain: string): string {
     formatted += `\n`;
   });
 
-  formatted += `\n=== END REDDIT DATA ===\n`;
-  formatted += `\nNote: These discussions span different timeframes and sorting criteria to provide diverse perspectives.\n`;
+  formatted += `\n=== END HIGH-TRAFFIC DATA ===\n`;
+  formatted += `Total Engagement: ${posts.reduce((sum, p) => sum + p.score + (p.num_comments * 2), 0)} points\n`;
   return formatted;
 }
 
@@ -196,38 +206,59 @@ serve(async (req) => {
 
     console.log(`Step 2: Analyzing ${redditPosts.length} Reddit discussions with AI...`);
 
-    const systemPrompt = `You are an expert problem analyst who specializes in extracting genuine pain points from real user discussions.
+    const systemPrompt = `You are an expert problem analyst specializing in extracting HIGH-VALUE pain points from real user discussions.
 
-Your task is to analyze Reddit discussions and extract 3-5 DIVERSE, ACTIONABLE problem statements based on what real people are actually saying.
+Your goal: Extract 3-5 ACTIONABLE problem statements that student developers can build solutions for.
 
-Each problem should:
-- Be derived from the actual Reddit discussions provided
-- Represent a recurring theme or highly-engaged topic
-- Be specific and well-defined
-- Have clear potential for a solution
-- Vary in scope, target audience, and approach
+CRITICAL REQUIREMENTS:
+1. **High-Traffic Only**: Focus on problems from posts with high engagement (upvotes + comments)
+2. **Real Pain Points**: Extract genuine frustrations, not feature requests
+3. **Clear Impact**: Problems should have measurable negative impact on users
+4. **Solution Potential**: Each problem should be solvable with technology
+5. **Diverse Scope**: Vary complexity - from simple tools to complex platforms
 
-Focus on:
-- Problems mentioned multiple times across different posts
-- High-engagement posts (many upvotes/comments)
-- Specific frustrations users express
-- Gaps or inefficiencies people complain about`;
+PAIN POINT INDICATORS TO LOOK FOR:
+- Emotional language: "frustrated", "hate", "annoying", "waste of time"
+- Repeated complaints across multiple posts
+- High comment counts indicating shared frustration
+- Specific workflow breakdowns or inefficiencies
+- Cost/time complaints with concrete numbers
+
+WHAT TO PRIORITIZE:
+- Posts with 15+ upvotes or 10+ comments
+- Problems mentioned by multiple users
+- Pain points with quantifiable impact (time, money, effort)
+- Issues that currently lack good solutions`;
 
     const userPrompt = redditPosts.length > 0 
-      ? `Analyze the following Reddit discussions from the ${sanitizedDomain} sector and extract 3-5 distinct, real-world problem statements.
+      ? `Analyze HIGH-TRAFFIC Reddit discussions from "${sanitizedDomain}" and extract 3-5 problem statements.
 
 ${redditContext}
 
-=== INSTRUCTIONS ===
-- Base your problems ONLY on what you see in the Reddit data above
-- Look for recurring complaints and frustrations across multiple posts
-- Prioritize problems from high-engagement posts (high upvotes/comments)
-- Identify specific pain points users express
-- Extract problems that have clear solution potential
-- Make each problem statement unique and actionable
-- Do NOT invent problems that aren't reflected in the discussions
+=== EXTRACTION INSTRUCTIONS ===
 
-Generate 3-5 problem statements based on the Reddit discussions.`
+STEP 1 - IDENTIFY HIGH-IMPACT PAIN POINTS:
+- Focus on posts with highest engagement (upvotes + comments)
+- Look for emotional language indicating real frustration
+- Find problems mentioned across MULTIPLE different posts
+- Prioritize specific, concrete complaints over vague issues
+
+STEP 2 - VALIDATE EACH PROBLEM:
+✓ Is it mentioned by real users in the data above?
+✓ Does it have high engagement (votes/comments)?
+✓ Is the impact clear and measurable?
+✓ Can it be solved with technology?
+✓ Is there a clear target audience?
+
+STEP 3 - STRUCTURE THE PROBLEM:
+For each problem, include:
+- **WHO**: Who faces this problem? (be specific)
+- **WHAT**: What exactly is the pain point?
+- **WHY**: Why does it matter? (time/money/effort wasted)
+- **CURRENT STATE**: What do people do now? (workarounds)
+- **EVIDENCE**: Quote specific Reddit comments/posts
+
+Extract 3-5 diverse, high-value problems from the data above.`
       : `Generate 3-5 distinct, real-world problem statements for the "${sanitizedDomain}" sector.
 
 Note: No Reddit data was available, so generate problems based on your knowledge of common challenges in this domain.
@@ -274,7 +305,7 @@ Make each problem statement unique and actionable.`;
                         },
                         description: { 
                           type: "string",
-                          description: "A detailed description of the problem, including specific examples and impact (200-400 words)"
+                          description: "Detailed problem description with: WHO faces it, WHAT the pain point is, WHY it matters (impact), CURRENT workarounds, and EVIDENCE from Reddit discussions (300-500 words)"
                         },
                         category: { 
                           type: "string",
@@ -335,6 +366,9 @@ Make each problem statement unique and actionable.`;
       problems: problemData.problems || [],
       metadata: {
         redditPostsAnalyzed: redditPosts.length,
+        totalEngagement: redditPosts.reduce((sum, p) => sum + p.score + (p.num_comments * 2), 0),
+        averageUpvotes: Math.round(redditPosts.reduce((sum, p) => sum + p.score, 0) / (redditPosts.length || 1)),
+        averageComments: Math.round(redditPosts.reduce((sum, p) => sum + p.num_comments, 0) / (redditPosts.length || 1)),
         subreddits: [...new Set(redditPosts.map(p => p.subreddit))],
       }
     }), {

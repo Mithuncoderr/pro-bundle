@@ -60,11 +60,12 @@ export default function GenerateProblem() {
       setMetadata(data.metadata);
       
       const redditCount = data.metadata?.redditPostsAnalyzed || 0;
+      const engagement = data.metadata?.totalEngagement || 0;
       
       toast({
         title: "Problems Discovered!",
         description: redditCount > 0 
-          ? `Analyzed ${redditCount} Reddit discussions and generated ${data.problems?.length || 0} problem statements`
+          ? `Analyzed ${redditCount} high-traffic Reddit posts (${engagement.toLocaleString()} total engagement) and extracted ${data.problems?.length || 0} problem statements`
           : `Generated ${data.problems?.length || 0} problem statements`,
       });
     } catch (error: any) {
@@ -135,7 +136,7 @@ export default function GenerateProblem() {
               AI Problem Discovery Engine
             </h1>
             <p className="text-muted-foreground">
-              AI analyzes Reddit discussions to discover real problems people are facing
+              Enter a domain and AI will parse Reddit to find high-traffic pain points, then generate actionable problem statements
             </p>
           </div>
 
@@ -143,7 +144,7 @@ export default function GenerateProblem() {
             <CardHeader>
               <CardTitle>Generate Problem Ideas</CardTitle>
               <CardDescription>
-                AI searches Reddit for real discussions, then analyzes them to extract 3-5 genuine problem statements
+                AI searches Reddit for high-traffic discussions (10+ upvotes or 5+ comments), extracts pain points, and generates structured problem statements
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -172,7 +173,7 @@ export default function GenerateProblem() {
                   {isGenerating ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Searching Reddit & Analyzing...
+                      Parsing Reddit & Extracting Pain Points...
                     </>
                   ) : (
                     <>
@@ -190,11 +191,18 @@ export default function GenerateProblem() {
               <div className="space-y-2">
                 <h2 className="text-2xl font-bold">Generated Problem Ideas ({generatedProblems.length})</h2>
                 {metadata?.redditPostsAnalyzed > 0 && (
-                  <p className="text-sm text-muted-foreground">
-                    📊 Based on analysis of {metadata.redditPostsAnalyzed} Reddit discussions from{' '}
-                    {metadata.subreddits?.slice(0, 3).map((s: string) => `r/${s}`).join(', ')}
-                    {metadata.subreddits?.length > 3 && ` and ${metadata.subreddits.length - 3} more subreddit${metadata.subreddits.length > 4 ? 's' : ''}`}
-                  </p>
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">
+                      📊 Based on <span className="font-semibold">{metadata.redditPostsAnalyzed} high-traffic Reddit discussions</span> from{' '}
+                      {metadata.subreddits?.slice(0, 3).map((s: string) => `r/${s}`).join(', ')}
+                      {metadata.subreddits?.length > 3 && ` and ${metadata.subreddits.length - 3} more`}
+                    </p>
+                    <div className="flex gap-4 text-xs text-muted-foreground">
+                      <span>🔥 Total Engagement: <span className="font-semibold">{metadata.totalEngagement?.toLocaleString()}</span> points</span>
+                      <span>⬆️ Avg Upvotes: <span className="font-semibold">{metadata.averageUpvotes}</span></span>
+                      <span>💬 Avg Comments: <span className="font-semibold">{metadata.averageComments}</span></span>
+                    </div>
+                  </div>
                 )}
               </div>
               {generatedProblems.map((problem, index) => (
