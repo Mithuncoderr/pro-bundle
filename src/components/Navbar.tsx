@@ -73,7 +73,7 @@ const Navbar = () => {
           <Link to="/" className="flex items-center gap-2 group">
             <Code2 className="h-6 w-6 text-primary group-hover:text-accent transition-colors" />
             <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent">
-              TechProjects
+              Pro Bundle
             </span>
           </Link>
 
