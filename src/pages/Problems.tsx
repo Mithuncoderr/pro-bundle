@@ -138,65 +138,62 @@ const Problems = () => {
             </Link>
           </div>
 
-          <div className="space-y-4">
+          <div className="grid gap-4">
             {problems.map((problem) => (
-              <Card key={problem.id} className="group bg-card/50 backdrop-blur-sm hover:border-primary/40 hover:shadow-md transition-all">
-                <CardContent className="pt-6">
-                  <div className="space-y-3">
-                    {/* Title & Description */}
-                    <div>
-                      <h3 className="text-xl font-semibold mb-2 group-hover:text-primary transition-colors">
+              <Card key={problem.id} className="group bg-card border-border hover:border-primary/50 hover:shadow-lg transition-all">
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between gap-4">
+                    {/* Main Content */}
+                    <div className="flex-1 space-y-3">
+                      <h3 className="text-lg font-bold group-hover:text-primary transition-colors">
                         {problem.title}
                       </h3>
-                      <p className="text-muted-foreground leading-relaxed">
-                        {problem.description}
-                      </p>
+                      
+                      {/* Bullet Points */}
+                      <ul className="space-y-1.5 text-sm text-muted-foreground">
+                        {problem.description.split(/[.!?]+/).filter(s => s.trim().length > 20).slice(0, 3).map((point, idx) => (
+                          <li key={idx} className="flex items-start gap-2">
+                            <span className="text-primary mt-1">•</span>
+                            <span className="leading-relaxed">{point.trim()}</span>
+                          </li>
+                        ))}
+                      </ul>
+
+                      {/* Tags */}
+                      {problem.tags && problem.tags.length > 0 && (
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {problem.tags.slice(0, 4).map((tag, index) => (
+                            <Badge key={index} variant="secondary" className="text-xs">
+                              {tag}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
-                    {/* Tags & Metadata */}
-                    <div className="flex items-center justify-between pt-3 border-t border-border/40">
-                      <div className="flex items-center gap-3">
-                        {problem.tags && problem.tags.length > 0 && (
-                          <div className="flex items-center gap-1.5">
-                            <Tag className="h-3.5 w-3.5 text-muted-foreground" />
-                            <div className="flex gap-1.5">
-                              {problem.tags.slice(0, 3).map((tag, index) => (
-                                <Badge key={index} variant="secondary" className="text-xs px-2 py-0">
-                                  {tag}
-                                </Badge>
-                              ))}
-                              {problem.tags.length > 3 && (
-                                <Badge variant="secondary" className="text-xs px-2 py-0">
-                                  +{problem.tags.length - 3}
-                                </Badge>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                      </div>
+                    {/* Actions Sidebar */}
+                    <div className="flex flex-col items-center gap-3 min-w-[60px]">
+                      <button 
+                        onClick={() => handleLike(problem.id)}
+                        className={`flex flex-col items-center gap-1 transition-colors ${
+                          likedProblems.has(problem.id) 
+                            ? "text-red-500 hover:text-red-600" 
+                            : "text-muted-foreground hover:text-primary"
+                        }`}
+                      >
+                        <Heart 
+                          className={`h-5 w-5 ${likedProblems.has(problem.id) ? "fill-current" : ""}`}
+                        />
+                        <span className="text-xs font-medium">{problem.upvotes_count}</span>
+                      </button>
                       
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <button 
-                          onClick={() => handleLike(problem.id)}
-                          className={`flex items-center gap-1.5 transition-colors ${
-                            likedProblems.has(problem.id) 
-                              ? "text-red-500 hover:text-red-600" 
-                              : "hover:text-primary"
-                          }`}
-                        >
-                          <Heart 
-                            className={`h-4 w-4 ${likedProblems.has(problem.id) ? "fill-current" : ""}`}
-                          />
-                          <span>{problem.upvotes_count}</span>
-                        </button>
-                        <button 
-                          onClick={() => toast({ title: "Comments coming soon!", description: "This feature is under development." })}
-                          className="flex items-center gap-1.5 hover:text-primary transition-colors"
-                        >
-                          <MessageSquare className="h-4 w-4" />
-                          <span>{problem.comments_count}</span>
-                        </button>
-                      </div>
+                      <button 
+                        onClick={() => toast({ title: "Comments coming soon!", description: "This feature is under development." })}
+                        className="flex flex-col items-center gap-1 text-muted-foreground hover:text-primary transition-colors"
+                      >
+                        <MessageSquare className="h-5 w-5" />
+                        <span className="text-xs font-medium">{problem.comments_count}</span>
+                      </button>
                     </div>
                   </div>
                 </CardContent>
