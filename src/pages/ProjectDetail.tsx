@@ -27,6 +27,8 @@ const ProjectDetail = () => {
   const { toast } = useToast();
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isSaved, setIsSaved] = useState(false);
+  const [user, setUser] = useState<any>(null);
 
   const handleShare = async () => {
     try {
@@ -45,7 +47,76 @@ const ProjectDetail = () => {
     }
   };
 
+  const handleSaveProject = async () => {
+    if (!user) {
+      toast({
+        title: "Login Required",
+        description: "Please log in to save projects",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      if (isSaved) {
+        // Remove save
+        const { error } = await supabase
+          .from("likes")
+          .delete()
+          .eq("user_id", user.id)
+          .eq("project_id", id);
+
+        if (error) throw error;
+
+        setIsSaved(false);
+        toast({
+          title: "Project removed",
+          description: "Project removed from your saved list",
+        });
+      } else {
+        // Add save
+        const { error } = await supabase
+          .from("likes")
+          .insert({
+            user_id: user.id,
+            project_id: id,
+          });
+
+        if (error) throw error;
+
+        setIsSaved(true);
+        toast({
+          title: "Project saved!",
+          description: "Project added to your saved list",
+        });
+      }
+    } catch (error) {
+      console.error("Error saving project:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save project. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+      
+      if (user && id) {
+        const { data } = await supabase
+          .from("likes")
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("project_id", id)
+          .maybeSingle();
+        
+        setIsSaved(!!data);
+      }
+    };
+
     const fetchProject = async () => {
       try {
         const { data, error } = await supabase
@@ -78,6 +149,7 @@ const ProjectDetail = () => {
       }
     };
 
+    checkAuth();
     fetchProject();
   }, [id, toast]);
 
@@ -218,9 +290,12 @@ const ProjectDetail = () => {
                 </CardContent>
               </Card>
 
-              <Button className="w-full bg-primary hover:bg-primary/90">
-                <Star className="mr-2 h-4 w-4" />
-                Save Project
+              <Button 
+                className="w-full bg-primary hover:bg-primary/90" 
+                onClick={handleSaveProject}
+              >
+                <Star className={`mr-2 h-4 w-4 ${isSaved ? 'fill-current' : ''}`} />
+                {isSaved ? 'Saved' : 'Save Project'}
               </Button>
 
               <Button variant="outline" className="w-full" onClick={handleShare}>
