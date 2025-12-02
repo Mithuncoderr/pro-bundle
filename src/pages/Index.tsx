@@ -14,7 +14,7 @@ const Index = () => {
     const fetchFeaturedProjects = async () => {
       const { data, error } = await supabase
         .from('projects')
-        .select('*')
+        .select('id, title, description, technologies, difficulty, likes_count, duration, views_count')
         .order('likes_count', { ascending: false })
         .limit(3);
 

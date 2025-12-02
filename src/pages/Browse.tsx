@@ -33,7 +33,7 @@ const Browse = () => {
   const fetchProjects = async () => {
     const { data, error } = await supabase
       .from("projects")
-      .select("*")
+      .select("id, title, description, technologies, difficulty, likes_count, duration, views_count")
       .order("created_at", { ascending: false });
 
     if (error) {
