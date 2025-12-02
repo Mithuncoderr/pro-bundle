@@ -19,21 +19,23 @@ const Navbar = () => {
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
+    const checkAdminRole = async (userId: string) => {
+      const { data: roleData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .eq("role", "admin")
+        .maybeSingle();
+      
+      setIsAdmin(!!roleData);
+    };
+
     // Set up auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        // Check admin role
-        supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", session.user.id)
-          .eq("role", "admin")
-          .single()
-          .then(({ data: roleData }) => {
-            setIsAdmin(!!roleData);
-          });
+        checkAdminRole(session.user.id);
       } else {
         setIsAdmin(false);
       }
@@ -44,15 +46,7 @@ const Navbar = () => {
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", session.user.id)
-          .eq("role", "admin")
-          .single()
-          .then(({ data: roleData }) => {
-            setIsAdmin(!!roleData);
-          });
+        checkAdminRole(session.user.id);
       }
     });
 

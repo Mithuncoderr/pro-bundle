@@ -79,12 +79,19 @@ export default function Account() {
 
       if (error) throw error;
 
+      // Update local state instead of refetching
+      setProfile({
+        ...profile,
+        username,
+        full_name: fullName,
+        bio,
+        avatar_url: avatarUrl
+      });
+
       toast({
         title: "Profile Updated",
         description: "Your profile has been successfully updated",
       });
-      
-      await checkUser();
     } catch (error: any) {
       toast({
         title: "Update Failed",
