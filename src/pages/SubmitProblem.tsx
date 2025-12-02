@@ -22,6 +22,7 @@ const problemSchema = z.object({
 
 const SubmitProblem = () => {
   const [user, setUser] = useState<User | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
@@ -32,20 +33,46 @@ const SubmitProblem = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         navigate("/auth");
       } else {
         setUser(session.user);
+        
+        // Check if user is admin
+        const { data: roleData } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", session.user.id)
+          .eq("role", "admin")
+          .maybeSingle();
+        
+        setIsAdmin(!!roleData);
       }
-    });
+    };
+
+    checkAuth();
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (!session) {
         navigate("/auth");
+        setUser(null);
+        setIsAdmin(false);
+      } else {
+        setUser(session.user);
+        
+        // Check if user is admin
+        const { data: roleData } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", session.user.id)
+          .eq("role", "admin")
+          .maybeSingle();
+        
+        setIsAdmin(!!roleData);
       }
     });
 
@@ -87,28 +114,55 @@ const SubmitProblem = () => {
 
       setIsLoading(true);
 
-      const { error } = await supabase.from("problem_statements").insert([
-        {
-          title: validatedData.title,
-          description: validatedData.description,
-          category: validatedData.category,
-          tags: validatedData.tags,
-          posted_by: user.id,
-        },
-      ]);
+      if (isAdmin) {
+        // Admin: Post directly to problem_statements
+        const { error } = await supabase.from("problem_statements").insert([
+          {
+            title: validatedData.title,
+            description: validatedData.description,
+            category: validatedData.category,
+            tags: validatedData.tags,
+            posted_by: user.id,
+          },
+        ]);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      toast({
-        title: "Success!",
-        description: "Your problem statement has been posted successfully.",
-      });
+        toast({
+          title: "Success!",
+          description: "Problem statement published directly.",
+        });
+
+        navigate("/problems");
+      } else {
+        // Regular user: Submit to pending_submissions
+        // Note: pending_submissions doesn't have category/tags fields yet
+        // Using description to store category info for now
+        const submissionDescription = `**Category:** ${validatedData.category}\n\n${validatedData.description}\n\n**Tags:** ${validatedData.tags.join(', ')}`;
+        
+        const { error } = await supabase.from("pending_submissions").insert([
+          {
+            title: validatedData.title,
+            description: submissionDescription,
+            technologies: validatedData.tags, // Store tags in technologies field temporarily
+            difficulty: "Beginner", // Default value required by schema
+            submitted_by: user.id,
+            status: "pending",
+          },
+        ]);
+
+        if (error) throw error;
+
+        toast({
+          title: "Submission received!",
+          description: "Your problem statement has been sent for moderation. An admin will review it soon.",
+        });
+      }
 
       setTitle("");
       setDescription("");
       setCategory("");
       setTags([]);
-      navigate("/problems");
     } catch (error) {
       if (error instanceof z.ZodError) {
         toast({
@@ -140,7 +194,9 @@ const SubmitProblem = () => {
             <CardHeader>
               <CardTitle className="text-3xl">Post a Problem Statement</CardTitle>
               <CardDescription className="text-base">
-                Share a real-world problem that needs a solution
+                {isAdmin 
+                  ? "Share a real-world problem that needs a solution" 
+                  : "Submit a problem statement for moderation. An admin will review and publish it."}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -219,7 +275,7 @@ const SubmitProblem = () => {
                 </div>
 
                 <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? "Posting..." : "Post Problem Statement"}
+                  {isLoading ? (isAdmin ? "Posting..." : "Submitting...") : (isAdmin ? "Post Problem Statement" : "Submit for Review")}
                 </Button>
               </form>
             </CardContent>
